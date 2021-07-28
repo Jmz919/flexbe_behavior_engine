@@ -1,12 +1,23 @@
 #!/usr/bin/env python
 import unittest
-import rospy
+import rclpy
 
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from flexbe_core import EventState, OperatableStateMachine
 from flexbe_core.core.exceptions import StateError, StateMachineError, UserDataError
 
 
 class TestExceptions(unittest.TestCase):
+    def setUp(self):
+        self.context = rclpy.context.Context()
+        rclpy.init(context=self.context)
+        self.executor = SingleThreadedExecutor(context=self.context)
+        self.node = rclpy.create_node('TestExceptions', context=self.context)
+
+    def tearDown(self):
+        self.node.destroy_node()
+        self.executor.shutdown()
+        rclpy.shutdown(context=self.context)
 
     def test_invalid_outcome(self):
         class ReturnInvalidOutcome(EventState):
@@ -120,6 +131,7 @@ class TestExceptions(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rospy.init_node('test_flexbe_exceptions')
-    import rostest
-    rostest.rosrun('flexbe_core', 'test_flexbe_exceptions', TestExceptions)
+    # rospy.init_node('test_flexbe_exceptions')
+    # import rostest
+    # rostest.rosrun('flexbe_core', 'test_flexbe_exceptions', TestExceptions)
+    unittest.main()

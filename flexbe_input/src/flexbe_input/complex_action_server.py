@@ -29,15 +29,17 @@
 # Author: Brian Wright.
 # Based on C++ simple_action_server.h by Eitan Marder-Eppstein
 
-import rospy
+import rclpy
+from rclpy.action import ActionServer
+from rclpy.node import Node
 
 import threading
 import traceback
+from flexbe_core import Logger
 
 import six
 
 import actionlib_msgs
-from actionlib import ActionServer
 from actionlib.server_goal_handle import ServerGoalHandle;
 
 def nop_cb(goal_handle):
@@ -47,7 +49,7 @@ def nop_cb(goal_handle):
 ## @class ComplexActionServer
 ## @brief The ComplexActionServer
 ## Operate with concurrent goals in a multi-threaded fashion
-class ComplexActionServer:
+class ComplexActionServer(Node):
     ## @brief Constructor for a ComplexActionServer
     ## @param name A name for the action server
     ## @param execute_cb Optional callback that gets called in a separate thread whenever
@@ -55,6 +57,8 @@ class ComplexActionServer:
     ## Adding an execute callback also deactivates the goalCallback.
     ## @param  auto_start A boolean value that tells the ActionServer wheteher or not to start publishing as soon as it comes up. THIS SHOULD ALWAYS BE SET TO FALSE TO AVOID RACE CONDITIONS and start() should be called after construction of the server.
     def __init__(self, name, ActionSpec, execute_cb = None, auto_start = True):
+        super().__init__('complex_action_server')
+        Logger.initialize()
 
         self.goals_received_ = 0;
         self.goal_queue_ = six.moves.queue.Queue()
@@ -83,10 +87,12 @@ class ComplexActionServer:
             self.execute_thread.start();
         else:
             self.execute_thread = None
-        
+
 
         #create the action server
-        self.action_server = ActionServer(name, ActionSpec, self.internal_goal_callback,self.internal_preempt_callback,auto_start);
+        # self.action_server = ActionServer(name, ActionSpec, self.internal_goal_callback,self.internal_preempt_callback,auto_start);
+        self.action_server = ActionServer(self, ActionSpec, name, self.internal_goal_callback);
+
 
 
     def __del__(self):
@@ -99,16 +105,16 @@ class ComplexActionServer:
 
 
     ## @brief Accepts a new goal when one is available The status of this
-    ## goal is set to active upon acceptance, 
+    ## goal is set to active upon acceptance,
     def accept_new_goal(self):
         with self.action_server.lock, self.lock:
 
-            rospy.logdebug("Accepting a new goal");
+            Logger.debug("Accepting a new goal")
 
             self.goals_received_ -= 1;
 
-			#get from queue 
-            current_goal = self.goal_queue_.get() 
+			#get from queue
+            current_goal = self.goal_queue_.get()
 
             #set the status of the current goal to be active
             current_goal.set_accepted("This goal has been accepted by the simple action server");
@@ -138,7 +144,7 @@ class ComplexActionServer:
           if not result:
               result=self.get_default_result();
           #self.current_goal.set_succeeded(result, text);
-          goal_handle.set_succeeded(result,text)	
+          goal_handle.set_succeeded(result,text)
 
     ## @brief Sets the status of the active goal to aborted
     ## @param  result An optional result to send back to any clients of the goal
@@ -162,7 +168,7 @@ class ComplexActionServer:
     ## @param cb The callback to be invoked
     def register_goal_callback(self,cb):
         if self.execute_callback:
-            rospy.logwarn("Cannot call ComplexActionServer.register_goal_callback() because an executeCallback exists. Not going to register it.");
+            Logger.warn("Cannot call ComplexActionServer.register_goal_callback() because an executeCallback exists. Not going to register it.")
         else:
             self.goal_callback = cb;
 
@@ -177,14 +183,13 @@ class ComplexActionServer:
           self.execute_condition.acquire();
 
           try:
-              rospy.logdebug("A new goal %shas been recieved by the single goal action server",goal.get_goal_id().id);
-
+              Logger.debug("A new goal %shas been recieved by the single goal action server",goal.get_goal_id().id)
 
               print("got a goal")
               self.next_goal = goal;
               self.new_goal = True;
               self.goals_received_ += 1
-				
+
               #add goal to queue
               self.goal_queue_.put(goal)
 
@@ -193,20 +198,22 @@ class ComplexActionServer:
               self.execute_condition.release();
 
           except Exception as e:
-              rospy.logerr("ComplexActionServer.internal_goal_callback - exception %s",str(e))
+              Logger.error("ComplexActionServer.internal_goal_callback - exception %s",str(e))
               self.execute_condition.release();
 
-       
+
     ## @brief Callback for when the ActionServer receives a new preempt and passes it on
     def internal_preempt_callback(self,preempt):
     	return
 
     ## @brief Called from a separate thread to call blocking execute calls
     def executeLoop(self):
-          loop_duration = rospy.Duration.from_sec(.1);
+          # loop_duration = rospy.Duration.from_sec(.1);
+          loop_duration = rclpy.Duration.from_sec(0.1)
 
-          while (not rospy.is_shutdown()):
-              rospy.logdebug("SAS: execute");
+          # while (not rospy.is_shutdown()):
+          while (rclpy.ok())):
+              Logger.debug("SAS: execute")
 
               with self.terminate_mutex:
                   if (self.need_to_terminate):
@@ -216,29 +223,26 @@ class ComplexActionServer:
                   # accept_new_goal() is performing its own locking
                   goal_handle = self.accept_new_goal();
                   if not self.execute_callback:
-                      rospy.logerr("execute_callback_ must exist. This is a bug in ComplexActionServer");
+                      Logger.error("execute_callback_ must exist. This is a bug in ComplexActionServer")
                       return
 
                   try:
-                  	
+
                       print("run new executecb")
                       thread = threading.Thread(target=self.run_goal,args=(goal_handle.get_goal(),goal_handle));
                       thread.start()
 
                   except Exception as ex:
-                      rospy.logerr("Exception in your execute callback: %s\n%s", str(ex),
+                      Logger.error("Exception in your execute callback: %s\n%s", str(ex),
                                    traceback.format_exc())
                       self.set_aborted(None, "Exception in execute callback: %s" % str(ex))
 
               with self.execute_condition:
                   self.execute_condition.wait(loop_duration.to_sec());
-                  
-                  
-                  
-                  
+
+
+
+
     def run_goal(self,goal, goal_handle):
        print('new thread')
-       self.execute_callback(goal,goal_handle);      
-
-
-            
+       self.execute_callback(goal,goal_handle);

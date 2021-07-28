@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 import unittest
+import time
+import rclpy
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached, ProxyActionClient, ProxyServiceCaller
 
 from std_msgs.msg import String
@@ -8,6 +11,16 @@ from flexbe_msgs.msg import BehaviorExecutionAction, BehaviorExecutionGoal, Beha
 
 
 class TestProxies(unittest.TestCase):
+    def setUp(self):
+        self.context = rclpy.context.Context()
+        rclpy.init(context=self.context)
+        self.executor = SingleThreadedExecutor(context=self.context)
+        self.node = rclpy.create_node('TestProxies', context=self.context)
+
+    def tearDown(self):
+        self.node.destroy_node()
+        self.executor.shutdown()
+        rclpy.shutdown(context=self.context)
 
     def test_publish_subscribe(self):
         t1 = '/pubsub_1'
@@ -22,9 +35,11 @@ class TestProxies(unittest.TestCase):
         pub.publish(t1, String('1'))
         pub.publish(t2, String('2'))
 
-        rospy.sleep(.5)  # make sure latched message is sent before subscriber is added
+        time.sleep(0.5)
+        # rospy.sleep(.5)  # make sure latched message is sent before subscriber is added
         sub = ProxySubscriberCached({t2: String})
-        rospy.sleep(.5)  # make sure latched message can be received before checking
+        time.sleep(0.5)
+        # rospy.sleep(.5)  # make sure latched message can be received before checking
 
         self.assertTrue(sub.has_msg(t1))
         self.assertEqual(sub.get_last_msg(t1).data, '1')
@@ -44,14 +59,16 @@ class TestProxies(unittest.TestCase):
 
         pub.publish(t1, String('1'))
         pub.publish(t1, String('2'))
-        rospy.sleep(.5)  # make sure messages can be received
+        time.sleep(0.5)
+        # rospy.sleep(.5)  # make sure messages can be received
 
         self.assertTrue(sub.has_msg(t1))
         self.assertTrue(sub.has_buffered(t1))
         self.assertEqual(sub.get_from_buffer(t1).data, '1')
 
         pub.publish(t1, String('3'))
-        rospy.sleep(.5)  # make sure messages can be received
+        time.sleep(0.5)
+        # rospy.sleep(.5)  # make sure messages can be received
 
         self.assertEqual(sub.get_from_buffer(t1).data, '2')
         self.assertEqual(sub.get_from_buffer(t1).data, '3')
@@ -60,7 +77,8 @@ class TestProxies(unittest.TestCase):
 
     def test_service_caller(self):
         t1 = '/service_1'
-        rospy.Service(t1, Trigger, lambda r: (True, 'ok'))
+        self.node.create_service(Trigger, t1, lambda r: (True, 'ok'))
+        # rospy.Service(t1, Trigger, lambda r: (True, 'ok'))
 
         srv = ProxyServiceCaller({t1: Trigger})
 
@@ -78,7 +96,8 @@ class TestProxies(unittest.TestCase):
         server = None
 
         def execute_cb(goal):
-            rospy.sleep(.5)
+            # rospy.sleep(.5)
+            time.sleep(0.5)
             if server.is_preempt_requested():
                 server.set_preempted()
             else:
@@ -91,7 +110,8 @@ class TestProxies(unittest.TestCase):
         self.assertFalse(client.has_result(t1))
         client.send_goal(t1, BehaviorExecutionGoal())
 
-        rate = rospy.Rate(20)
+        # rate = rospy.Rate(20)
+        rate = rclpy.Rate(20)
         for i in range(20):
             self.assertTrue(client.is_active(t1) or client.has_result(t1))
             rate.sleep()
@@ -101,9 +121,11 @@ class TestProxies(unittest.TestCase):
         self.assertEqual(result.outcome, 'ok')
 
         client.send_goal(t1, BehaviorExecutionGoal())
-        rospy.sleep(.1)
+        # rospy.sleep(.1)
+        time.sleep(0.1)
         client.cancel(t1)
-        rospy.sleep(.9)
+        # rospy.sleep(.9)
+        time.sleep(0.9)
 
         self.assertFalse(client.is_active(t1))
 
@@ -113,6 +135,7 @@ class TestProxies(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rospy.init_node('test_flexbe_proxies')
-    import rostest
-    rostest.rosrun('flexbe_core', 'test_flexbe_proxies', TestProxies)
+    # rospy.init_node('test_flexbe_proxies')
+    # import rostest
+    # rostest.rosrun('flexbe_core', 'test_flexbe_proxies', TestProxies)
+    unittest.main()

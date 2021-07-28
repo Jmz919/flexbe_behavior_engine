@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 import unittest
+import time
+import rclpy
 import rospy
+
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 
 from flexbe_core import EventState, OperatableStateMachine, ConcurrencyContainer
 from flexbe_core.core import PreemptableState
@@ -18,6 +22,10 @@ class TestSubjectState(EventState):
         self.result = None
         self.last_events = []
         self.count = 0
+        self.context = rclpy.context.Context()
+        rclpy.init(context=self.context)
+        self.executor = SingleThreadedExecutor(context=self.context)
+        self.node = rclpy.create_node('TestSubjectState', context=self.context)
 
     def execute(self, userdata):
         self.count += 1
@@ -58,7 +66,8 @@ class TestCore(unittest.TestCase):
         return state.parent.execute(None)
 
     def assertMessage(self, sub, topic, msg, timeout=1):
-        rate = rospy.Rate(100)
+        # rate = rospy.Rate(100)
+        rate = rclpy.Rate(100)
         for i in range(int(timeout * 100)):
             if sub.has_msg(topic):
                 received = sub.get_last_msg(topic)
@@ -78,7 +87,8 @@ class TestCore(unittest.TestCase):
                 self.assertEqual(expected, actual, error)
 
     def assertNoMessage(self, sub, topic, timeout=1):
-        rate = rospy.Rate(100)
+        # rate = rospy.Rate(100)
+        rate = rclpy.Rate(100)
         for i in range(int(timeout * 100)):
             if sub.has_msg(topic):
                 received = sub.get_last_msg(topic)
@@ -93,7 +103,8 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        rospy.sleep(0.2)  # wait for pub/sub
+        # rospy.sleep(0.2)  # wait for pub/sub
+        time.sleep(0.2)
 
         # enter during first execute
         self._execute(state)
@@ -136,7 +147,8 @@ class TestCore(unittest.TestCase):
         out_topic = 'flexbe/mirror/outcome'
         req_topic = 'flexbe/outcome_request'
         sub = ProxySubscriberCached({out_topic: UInt8, req_topic: OutcomeRequest})
-        rospy.sleep(0.2)  # wait for pub/sub
+        # rospy.sleep(0.2)  # wait for pub/sub
+        time.sleep(0.2)
 
         # return outcome in full autonomy, no request
         state.result = 'error'
@@ -172,7 +184,8 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        rospy.sleep(0.2)  # wait for pub/sub
+        # rospy.sleep(0.2)  # wait for pub/sub
+        time.sleep(0.2)
 
         # preempt when trigger variable is set
         PreemptableState.preempt = True
@@ -195,7 +208,8 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        rospy.sleep(0.2)  # wait for pub/sub
+        # rospy.sleep(0.2)  # wait for pub/sub
+        time.sleep(0.2)
 
         # lock and unlock as commanded, return outcome after unlock
         state._sub._callback(String('/subject'), 'flexbe/command/lock')
@@ -245,7 +259,8 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        rospy.sleep(0.2)  # wait for pub/sub
+        # rospy.sleep(0.2)  # wait for pub/sub
+        time.sleep(0.2)
 
         # return requested outcome
         state._sub._callback(OutcomeRequest(target='subject', outcome=1), 'flexbe/command/transition')
@@ -263,18 +278,18 @@ class TestCore(unittest.TestCase):
         state = self._create()
 
         # default rate is 10Hz
-        start = rospy.get_time()
+        start = rclpy.Time.now()
         for i in range(10):
             state.sleep()
-        duration = rospy.get_time() - start
+        duration = rclpy.Time.now() - start
         self.assertAlmostEqual(duration, 1., places=2)
         self.assertAlmostEqual(state.sleep_duration, .1, places=2)
 
         # change of rate works as expected
         state.set_rate(1)
-        start = rospy.get_time()
+        start = rclpy.Time.now()
         state.sleep()
-        duration = rospy.get_time() - start
+        duration = rclpy.Time.now() - start
         self.assertAlmostEqual(duration, 1., places=2)
         self.assertAlmostEqual(state.sleep_duration, 1., places=2)
 
@@ -349,7 +364,8 @@ class TestCore(unittest.TestCase):
         class FakeRate(object):
 
             def remaining(self):
-                return rospy.Duration(0)
+                # return rospy.Duration(0)
+                return rclpy.Duration(0)
 
             def sleep(self):
                 pass
@@ -364,9 +380,9 @@ class TestCore(unittest.TestCase):
         cc['side'].set_rate(10)
         cc['main'].count = 0
         cc['side'].count = 0
-        start = rospy.get_time()
+        start = rclpy.Time.now()
         cc_count = 0
-        while rospy.get_time() - start <= 1.:
+        while rclpy.Time.now() - start <= 1.:
             cc_count += 1
             cc.execute(None)
             self.assertLessEqual(cc.sleep_duration, .1)
@@ -489,6 +505,7 @@ class TestCore(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rospy.init_node('test_flexbe_core')
-    import rostest
-    rostest.rosrun('flexbe_core', 'test_flexbe_core', TestCore)
+    # rospy.init_node('test_flexbe_core')
+    # import rostest
+    # rostest.rosrun('flexbe_core', 'test_flexbe_core', TestCore)
+    unittest.main()

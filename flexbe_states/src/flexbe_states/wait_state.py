@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import rospy
+import rclpy
 from flexbe_core import EventState
 
 
@@ -17,10 +17,10 @@ class WaitState(EventState):
         self._wait = wait_time
 
     def execute(self, userdata):
-        elapsed = rospy.get_rostime() - self._start_time
+        elapsed = rclpy.Time.now() - self._start_time
         if elapsed.to_sec() > self._wait:
             return 'done'
 
     def on_enter(self, userdata):
         '''Upon entering the state, save the current time and start waiting.'''
-        self._start_time = rospy.get_rostime()
+        self._start_time = rclpy.Time.now()

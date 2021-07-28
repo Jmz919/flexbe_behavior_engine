@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import inspect
-import rospy
+import rclpy
 
 from flexbe_core.core import EventState
 from .logger import Logger
@@ -61,7 +61,7 @@ class TestInterface(object):
     def _execute_state(self, userdata, spin_cb):
         self._instance.on_start()
         outcome = None
-        while outcome is None and not rospy.is_shutdown():
+        while outcome is None and rclpy.ok():
             outcome = self._instance.execute(userdata)
             self._instance.sleep()
             spin_cb()
@@ -75,7 +75,7 @@ class TestInterface(object):
         # this is required here for spinning ROS and processing roslaunch context callbacks
         outcome = None
         sm = self._instance._state_machine
-        while outcome is None and not rospy.is_shutdown():
+        while outcome is None and rclpy.ok():
             outcome = sm.execute(userdata)
             sm.sleep()
             spin_cb()
