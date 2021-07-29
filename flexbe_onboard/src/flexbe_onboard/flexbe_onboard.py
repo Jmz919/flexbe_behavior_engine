@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-import rospy
 import rclpy
+from rclpy.exceptions import ParameterNotDeclaredException
+from rclpy.node import Node
 import os
 import sys
 import inspect
@@ -18,19 +19,20 @@ from flexbe_msgs.msg import BehaviorSelection, BEStatus, CommandFeedback
 from std_msgs.msg import Empty
 
 
-class FlexbeOnboard(object):
+class FlexbeOnboard(Node):
     """
     Controls the execution of robot behaviors.
     """
 
     def __init__(self):
+        super().__init__("flexbe_onboard")
         self.be = None
         Logger.initialize()
         self._tracked_imports = list()
         # prepare temp folder
         self._tmp_folder = tempfile.mkdtemp()
         sys.path.append(self._tmp_folder)
-        rospy.on_shutdown(self._cleanup_tempdir)
+        # rospy.on_shutdown(self._cleanup_tempdir)
 
         # prepare manifest folder access
         self._behavior_lib = BehaviorLibrary()
@@ -46,7 +48,13 @@ class FlexbeOnboard(object):
         self._execute_heartbeat()
 
         # listen for new behavior to start
-        self._enable_clear_imports = rospy.get_param('~enable_clear_imports', False)
+        # self._enable_clear_imports = rospy.get_param('~enable_clear_imports', False)
+        try:
+            self._enable_clear_impots = self.get_parameter('~enable_clear_imports').get_parameter_value()
+        except ParameterNotDeclaredException as e:
+            self.declare_parameter('~enable_clear_imports', False)
+            self._enable_clear_impots = self.get_parameter('~enable_clear_imports').get_parameter_value()
+
         self._running = False
         self._run_lock = threading.Lock()
         self._switching = False
@@ -54,9 +62,9 @@ class FlexbeOnboard(object):
         self._sub = ProxySubscriberCached()
         self._sub.subscribe('flexbe/start_behavior', BehaviorSelection, self._behavior_callback)
 
-        rospy.sleep(0.5)  # wait for publishers etc to really be set up
+        time.sleep(0.5)  # wait for publishers etc to really be set up
         self._pub.publish(self.status_topic, BEStatus(code=BEStatus.READY))
-        rospy.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+        Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
 
     def _behavior_callback(self, msg):
         thread = threading.Thread(target=self._behavior_execution, args=[msg])
@@ -69,6 +77,9 @@ class FlexbeOnboard(object):
 
     def _behavior_execution(self, msg):
         # sending a behavior while one is already running is considered as switching
+        if not rclpy.ok():
+            self._cleanup_tempdir()
+
         if self._running:
             Logger.loginfo('--> Initiating behavior switch...')
             self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['received']))
@@ -82,7 +93,7 @@ class FlexbeOnboard(object):
             if self._running:
                 self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['failed']))
             else:
-                rospy.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+                Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
             return
 
         # perform the behavior switch if required
@@ -96,15 +107,15 @@ class FlexbeOnboard(object):
                     self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['not_switchable']))
                     return
                 # wait if running behavior is currently starting or stopping
-                rate = rospy.Rate(100)
-                while not rospy.is_shutdown():
+                rate = rclpy.Rate(100)
+                while rclpy.ok():
                     active_state = self.be.get_current_state()
                     if active_state is not None or not self._running:
                         break
                     rate.sleep()
                 # extract the active state if any
                 if active_state is not None:
-                    rospy.loginfo("Current state %s is kept active.", active_state.name)
+                    Logger.loginfo("Current state %s is kept active.", active_state.name)
                     try:
                         be.prepare_for_switch(active_state)
                         self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['prepared']))
@@ -113,7 +124,7 @@ class FlexbeOnboard(object):
                         self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['failed']))
                         return
                     # stop the rest
-                    rospy.loginfo('Preempting current behavior version...')
+                    Logger.loginfo('Preempting current behavior version...')
                     self.be.preempt()
 
         # execute the behavior
@@ -124,8 +135,8 @@ class FlexbeOnboard(object):
 
             result = None
             try:
-                rospy.loginfo('Behavior ready, execution starts now.')
-                rospy.loginfo('[%s : %s]', be.name, msg.behavior_checksum)
+                Logger.loginfo('Behavior ready, execution starts now.')
+                Logger.loginfo('[%s : %s]', be.name, msg.behavior_checksum)
                 self.be.confirm()
                 args = [self.be.requested_state_path] if self.be.requested_state_path is not None else []
                 self._pub.publish(self.status_topic,
@@ -152,11 +163,11 @@ class FlexbeOnboard(object):
                     self._clear_imports()
                 self._cleanup_behavior(msg.behavior_checksum)
             except Exception as e:
-                rospy.logerr('Failed to clean up behavior:\n%s' % str(e))
+                Logger.logerr('Failed to clean up behavior:\n%s' % str(e))
 
             if not self._switching:
                 Logger.loginfo('Behavior execution finished with result %s.', str(result))
-                rospy.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+                Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
             self._running = False
             self.be = None
 
@@ -173,7 +184,7 @@ class FlexbeOnboard(object):
             be_filepath = self._behavior_lib.get_sourcecode_filepath(msg.behavior_id, add_tmp=True)
             if os.path.isfile(be_filepath):
                 be_file = open(be_filepath, "r")
-                rospy.logwarn("Found a tmp version of the referred behavior! Assuming local test run.")
+                Logger.logwarn("Found a tmp version of the referred behavior! Assuming local test run.")
             else:
                 be_filepath = self._behavior_lib.get_sourcecode_filepath(msg.behavior_id)
                 be_file = open(be_filepath, "r")
@@ -201,7 +212,7 @@ class FlexbeOnboard(object):
                                 "Also try: rosrun flexbe_widget clear_cache" % str(be_filepath))
                 raise Exception(mismatch_msg)
             else:
-                rospy.loginfo("Successfully applied %d modifications." % len(msg.modifications))
+                Logger.loginfo("Successfully applied %d modifications." % len(msg.modifications))
         except Exception as e:
             Logger.logerr('Failed to apply behavior modifications:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
@@ -225,7 +236,7 @@ class FlexbeOnboard(object):
                                                                          member.__module__ == package.__name__))
                 beclass = clsmembers[0][1]
                 be = beclass()
-            rospy.loginfo('Behavior ' + be.name + ' created.')
+            Logger.loginfo('Behavior ' + be.name + ' created.')
         except Exception as e:
             Logger.logerr('Exception caught in behavior definition:\n%s\n'
                           'See onboard terminal for more information.' % str(e))
@@ -238,7 +249,7 @@ class FlexbeOnboard(object):
 
         # initialize behavior parameters
         if len(msg.arg_keys) > 0:
-            rospy.loginfo('The following parameters will be used:')
+            Logger.loginfo('The following parameters will be used:')
         try:
             for i in range(len(msg.arg_keys)):
                 # action call has empty string as default, not a valid param key
@@ -250,9 +261,9 @@ class FlexbeOnboard(object):
                     behavior = name_split[0] if len(name_split) == 2 else ''
                     key = name_split[-1]
                     suffix = ' (' + behavior + ')' if behavior != '' else ''
-                    rospy.loginfo(key + ' = ' + msg.arg_values[i] + suffix)
+                    Logger.loginfo(key + ' = ' + msg.arg_values[i] + suffix)
                 else:
-                    rospy.logwarn('Parameter ' + msg.arg_keys[i] + ' (set to ' + msg.arg_values[i] + ') not defined')
+                    Logger.logwarn('Parameter ' + msg.arg_keys[i] + ' (set to ' + msg.arg_values[i] + ') not defined')
         except Exception as e:
             Logger.logerr('Failed to initialize parameters:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
@@ -262,7 +273,7 @@ class FlexbeOnboard(object):
         try:
             be.set_up(id=msg.behavior_checksum, autonomy_level=msg.autonomy_level, debug=False)
             be.prepare_for_execution(self._convert_input_data(msg.input_keys, msg.input_values))
-            rospy.loginfo('State machine built.')
+            Logger.loginfo('State machine built.')
         except Exception as e:
             Logger.logerr('Behavior construction failed!\n%s\n'
                           'See onboard terminal for more information.' % str(e))

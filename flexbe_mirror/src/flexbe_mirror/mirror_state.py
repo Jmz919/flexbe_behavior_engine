@@ -28,7 +28,7 @@ class MirrorState(EventState):
         if self._sub.has_buffered(self._outcome_topic):
             msg = self._sub.get_from_buffer(self._outcome_topic)
             if msg.data < len(self.outcomes):
-                Logger.info("State update: %s > %s", self._target_name, self.outcomes[msg.data])
+                Logger.loginfo("State update: %s > %s", self._target_name, self.outcomes[msg.data])
                 return self.outcomes[msg.data]
         try:
             self.sleep()

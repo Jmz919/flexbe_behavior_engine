@@ -25,11 +25,11 @@ class BehaviorInput(object):
 		self._as = ComplexActionServer('flexbe/behavior_input', BehaviorInputAction, execute_cb=self.execute_cb, auto_start = False)
 		self._as.start()
 
-		Logger.info("Ready for data requests...")
+		Logger.loginfo("Ready for data requests...")
 
 	def execute_cb(self, goal , goal_handle):
-		Logger.info("--> Got a request!")
-		Logger.info('"%s"' % goal.msg)
+		Logger.loginfo("--> Got a request!")
+		Logger.loginfo('"%s"' % goal.msg)
 
 
 		relay_ocs_client_ = actionlib.SimpleActionClient('flexbe/operator_input', BehaviorInputAction)
@@ -57,8 +57,8 @@ class BehaviorInput(object):
 		elif(result.result_code == BehaviorInputResult.RESULT_FAILED):
 			# remove
 			self._as.set_succeeded(BehaviorInputResult(result_code=BehaviorInputResult.RESULT_FAILED, data=data_str),"failed",goal_handle)
-			Logger.info("<-- Replied with FAILED")
+			Logger.loginfo("<-- Replied with FAILED")
 
 		elif(result.result_code == BehaviorInputResult.RESULT_ABORTED ):
 			self._as.set_succeeded(BehaviorInputResult(result_code=BehaviorInputResult.RESULT_ABORTED, data=data_str),"Aborted",goal_handle)
-			Logger.info("<-- Replied with ABORT")
+			Logger.loginfo("<-- Replied with ABORT")

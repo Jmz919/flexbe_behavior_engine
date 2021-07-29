@@ -3,7 +3,9 @@ import sys
 import os
 import unittest
 import zlib
-import rospy
+import time
+import rclpy
+from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 
 from flexbe_onboard.flexbe_onboard import FlexbeOnboard
 from flexbe_core.proxy import ProxySubscriberCached
@@ -15,11 +17,16 @@ class TestOnboard(unittest.TestCase):
 
     def __init__(self, name):
         super(TestOnboard, self).__init__(name)
+        self.context = rclpy.context.Context()
+        rclpy.init(context=self.context)
+        self.executor = SingleThreadedExecutor(context=self.context)
+        self.node = rclpy.create_node('TestOnboard', context=self.context)
+
         self.sub = ProxySubscriberCached({
             'flexbe/status': BEStatus,
             'flexbe/log': BehaviorLog
         })
-        self.rate = rospy.Rate(100)
+        self.rate = rclpy.Rate(100)
         # make sure that behaviors can be imported
         data_folder = os.path.dirname(os.path.realpath(__file__))
         sys.path.insert(0, data_folder)
@@ -42,8 +49,9 @@ class TestOnboard(unittest.TestCase):
         return msg
 
     def test_onboard_behaviors(self):
-        behavior_pub = rospy.Publisher('flexbe/start_behavior', BehaviorSelection, queue_size=1)
-        rospy.sleep(0.5)  # wait for publisher
+        behavior_pub = self.node.create_publisher(BehaviorSelection, 'flexbe/start_behavior', 1)
+        # behavior_pub = rospy.Publisher('flexbe/start_behavior', BehaviorSelection, queue_size=1)
+        time.sleep(0.5)  # wait for publisher
 
         # wait for the initial status message
         self.assertStatus(BEStatus.READY, 1)
@@ -111,6 +119,7 @@ class TestOnboard(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    rospy.init_node('test_flexbe_onboard')
-    import rostest
-    rostest.rosrun('flexbe_onboard', 'test_flexbe_onboard', TestOnboard)
+    # rospy.init_node('test_flexbe_onboard')
+    # import rostest
+    # rostest.rosrun('flexbe_onboard', 'test_flexbe_onboard', TestOnboard)
+    unittest.main()

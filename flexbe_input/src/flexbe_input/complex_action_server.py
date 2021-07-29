@@ -30,7 +30,7 @@
 # Based on C++ simple_action_server.h by Eitan Marder-Eppstein
 
 import rclpy
-from rclpy.action import ActionServer
+from rclpy.action import ActionServer, ServerGoalHandle
 from rclpy.node import Node
 
 import threading
@@ -80,7 +80,7 @@ class ComplexActionServer(Node):
         self.execute_condition = threading.Condition(self.lock);
 
         self.current_goal = ServerGoalHandle();
-        self.next_goal = ServerGoalHandle();
+        # self.next_goal = ServerGoalHandle();
 
         if self.execute_callback:
             self.execute_thread = threading.Thread(None, self.executeLoop);
@@ -109,7 +109,7 @@ class ComplexActionServer(Node):
     def accept_new_goal(self):
         with self.action_server.lock, self.lock:
 
-            Logger.debug("Accepting a new goal")
+            Logger.logdebug("Accepting a new goal")
 
             self.goals_received_ -= 1;
 
@@ -137,13 +137,13 @@ class ComplexActionServer(Node):
        status = self.current_goal.get_goal_status().status;
        return status == actionlib_msgs.msg.GoalStatus.ACTIVE #or status == actionlib_msgs.msg.GoalStatus.PREEMPTING;
 
+
     ## @brief Sets the status of the active goal to succeeded
     ## @param  result An optional result to send back to any clients of the goal
     def set_succeeded(self,result=None, text="", goal_handle=None):
       with self.action_server.lock, self.lock:
           if not result:
               result=self.get_default_result();
-          #self.current_goal.set_succeeded(result, text);
           goal_handle.set_succeeded(result,text)
 
     ## @brief Sets the status of the active goal to aborted
@@ -152,7 +152,6 @@ class ComplexActionServer(Node):
         with self.action_server.lock, self.lock:
             if not result:
                 result=self.get_default_result();
-            #self.current_goal.set_aborted(result, text);
             goal_handle.set_aborted(result,text)
 
     ## @brief Publishes feedback for a given goal
@@ -168,7 +167,7 @@ class ComplexActionServer(Node):
     ## @param cb The callback to be invoked
     def register_goal_callback(self,cb):
         if self.execute_callback:
-            Logger.warn("Cannot call ComplexActionServer.register_goal_callback() because an executeCallback exists. Not going to register it.")
+            Logger.logwarn("Cannot call ComplexActionServer.register_goal_callback() because an executeCallback exists. Not going to register it.")
         else:
             self.goal_callback = cb;
 
@@ -183,10 +182,10 @@ class ComplexActionServer(Node):
           self.execute_condition.acquire();
 
           try:
-              Logger.debug("A new goal %shas been recieved by the single goal action server",goal.get_goal_id().id)
+              Logger.logdebug("A new goal %shas been recieved by the single goal action server",goal.get_goal_id().id)
 
               print("got a goal")
-              self.next_goal = goal;
+              # self.next_goal = goal;
               self.new_goal = True;
               self.goals_received_ += 1
 
@@ -198,7 +197,7 @@ class ComplexActionServer(Node):
               self.execute_condition.release();
 
           except Exception as e:
-              Logger.error("ComplexActionServer.internal_goal_callback - exception %s",str(e))
+              Logger.logerr("ComplexActionServer.internal_goal_callback - exception %s",str(e))
               self.execute_condition.release();
 
 
@@ -213,7 +212,7 @@ class ComplexActionServer(Node):
 
           # while (not rospy.is_shutdown()):
           while (rclpy.ok())):
-              Logger.debug("SAS: execute")
+              Logger.logdebug("SAS: execute")
 
               with self.terminate_mutex:
                   if (self.need_to_terminate):
@@ -223,7 +222,7 @@ class ComplexActionServer(Node):
                   # accept_new_goal() is performing its own locking
                   goal_handle = self.accept_new_goal();
                   if not self.execute_callback:
-                      Logger.error("execute_callback_ must exist. This is a bug in ComplexActionServer")
+                      Logger.logerr("execute_callback_ must exist. This is a bug in ComplexActionServer")
                       return
 
                   try:
@@ -233,7 +232,7 @@ class ComplexActionServer(Node):
                       thread.start()
 
                   except Exception as ex:
-                      Logger.error("Exception in your execute callback: %s\n%s", str(ex),
+                      Logger.logerr("Exception in your execute callback: %s\n%s", str(ex),
                                    traceback.format_exc())
                       self.set_aborted(None, "Exception in execute callback: %s" % str(ex))
 
