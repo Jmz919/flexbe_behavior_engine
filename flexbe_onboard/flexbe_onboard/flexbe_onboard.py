@@ -12,7 +12,7 @@ import zlib
 import contextlib
 from ast import literal_eval as cast
 
-from flexbe_core import Logger, BehaviorLibrary
+from flexbe_core import BehaviorLibrary
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
 
 from flexbe_msgs.msg import BehaviorSelection, BEStatus, CommandFeedback
@@ -63,7 +63,7 @@ class FlexbeOnboard(Node):
 
         time.sleep(0.5)  # wait for publishers etc to really be set up
         self._pub.publish(self.status_topic, BEStatus(code=BEStatus.READY))
-        Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+        self.get_logger().info('\033[92m--- Behavior Engine ready! ---\033[0m')
 
     def _behavior_callback(self, msg):
         thread = threading.Thread(target=self._behavior_execution, args=[msg])
@@ -80,19 +80,19 @@ class FlexbeOnboard(Node):
             self._cleanup_tempdir()
 
         if self._running:
-            Logger.loginfo('--> Initiating behavior switch...')
+            self.get_logger().info('--> Initiating behavior switch...')
             self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['received']))
         else:
-            Logger.loginfo('--> Starting new behavior...')
+            self.get_logger().info('--> Starting new behavior...')
 
         # construct the behavior that should be executed
         be = self._prepare_behavior(msg)
         if be is None:
-            Logger.logerr('Dropped behavior start request because preparation failed.')
+            self.get_logger().error('Dropped behavior start request because preparation failed.')
             if self._running:
                 self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['failed']))
             else:
-                Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+                self.get_logger().info('\033[92m--- Behavior Engine ready! ---\033[0m')
             return
 
         # perform the behavior switch if required
@@ -102,7 +102,7 @@ class FlexbeOnboard(Node):
                 self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['start']))
                 # ensure that switching is possible
                 if not self._is_switchable(be):
-                    Logger.logerr('Dropped behavior start request because switching is not possible.')
+                    self.get_logger().error('Dropped behavior start request because switching is not possible.')
                     self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['not_switchable']))
                     return
                 # wait if running behavior is currently starting or stopping
@@ -114,16 +114,16 @@ class FlexbeOnboard(Node):
                     rate.sleep()
                 # extract the active state if any
                 if active_state is not None:
-                    Logger.loginfo("Current state %s is kept active.", active_state.name)
+                    self.get_logger().info("Current state %s is kept active.", active_state.name)
                     try:
                         be.prepare_for_switch(active_state)
                         self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['prepared']))
                     except Exception as e:
-                        Logger.logerr('Failed to prepare behavior switch:\n%s' % str(e))
+                        self.get_logger().error('Failed to prepare behavior switch:\n%s' % str(e))
                         self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['failed']))
                         return
                     # stop the rest
-                    Logger.loginfo('Preempting current behavior version...')
+                    self.get_logger().info('Preempting current behavior version...')
                     self.be.preempt()
 
         # execute the behavior
@@ -134,8 +134,8 @@ class FlexbeOnboard(Node):
 
             result = None
             try:
-                Logger.loginfo('Behavior ready, execution starts now.')
-                Logger.loginfo('[%s : %s]', be.name, msg.behavior_checksum)
+                self.get_logger().info('Behavior ready, execution starts now.')
+                self.get_logger().info('[%s : %s]', be.name, msg.behavior_checksum)
                 self.be.confirm()
                 args = [self.be.requested_state_path] if self.be.requested_state_path is not None else []
                 self._pub.publish(self.status_topic,
@@ -149,9 +149,9 @@ class FlexbeOnboard(Node):
                                       BEStatus(behavior_id=self.be.id, code=BEStatus.FINISHED, args=[str(result)]))
             except Exception as e:
                 self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.FAILED))
-                Logger.logerr('Behavior execution failed!\n%s' % str(e))
+                self.get_logger().error('Behavior execution failed!\n%s' % str(e))
                 import traceback
-                Logger.loginfo(traceback.format_exc())
+                self.get_logger().info(traceback.format_exc())
                 result = result or "exception"  # only set result if not executed
 
             # done, remove left-overs like the temporary behavior file
@@ -162,11 +162,11 @@ class FlexbeOnboard(Node):
                     self._clear_imports()
                 self._cleanup_behavior(msg.behavior_checksum)
             except Exception as e:
-                Logger.logerr('Failed to clean up behavior:\n%s' % str(e))
+                self.get_logger().error('Failed to clean up behavior:\n%s' % str(e))
 
             if not self._switching:
-                Logger.loginfo('Behavior execution finished with result %s.', str(result))
-                Logger.loginfo('\033[92m--- Behavior Engine ready! ---\033[0m')
+                self.get_logger().info('Behavior execution finished with result %s.', str(result))
+                self.get_logger().info('\033[92m--- Behavior Engine ready! ---\033[0m')
             self._running = False
             self.be = None
 
@@ -183,7 +183,7 @@ class FlexbeOnboard(Node):
             be_filepath = self._behavior_lib.get_sourcecode_filepath(msg.behavior_id, add_tmp=True)
             if os.path.isfile(be_filepath):
                 be_file = open(be_filepath, "r")
-                Logger.logwarn("Found a tmp version of the referred behavior! Assuming local test run.")
+                self.get_logger().warn("Found a tmp version of the referred behavior! Assuming local test run.")
             else:
                 be_filepath = self._behavior_lib.get_sourcecode_filepath(msg.behavior_id)
                 be_file = open(be_filepath, "r")
@@ -192,7 +192,7 @@ class FlexbeOnboard(Node):
             finally:
                 be_file.close()
         except Exception as e:
-            Logger.logerr('Failed to retrieve behavior from library:\n%s' % str(e))
+            self.get_logger().error('Failed to retrieve behavior from library:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
             return
 
@@ -211,9 +211,9 @@ class FlexbeOnboard(Node):
                                 "Also try: rosrun flexbe_widget clear_cache" % str(be_filepath))
                 raise Exception(mismatch_msg)
             else:
-                Logger.loginfo("Successfully applied %d modifications." % len(msg.modifications))
+                self.get_logger().info("Successfully applied %d modifications." % len(msg.modifications))
         except Exception as e:
-            Logger.logerr('Failed to apply behavior modifications:\n%s' % str(e))
+            self.get_logger().error('Failed to apply behavior modifications:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
             return
 
@@ -223,7 +223,7 @@ class FlexbeOnboard(Node):
             with open(file_path, "w") as sc_file:
                 sc_file.write(file_content)
         except Exception as e:
-            Logger.logerr('Failed to create temporary file for behavior class:\n%s' % str(e))
+            self.get_logger().error('Failed to create temporary file for behavior class:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
             return
 
@@ -235,9 +235,9 @@ class FlexbeOnboard(Node):
                                                                          member.__module__ == package.__name__))
                 beclass = clsmembers[0][1]
                 be = beclass()
-            Logger.loginfo('Behavior ' + be.name + ' created.')
+            self.get_logger().info('Behavior ' + be.name + ' created.')
         except Exception as e:
-            Logger.logerr('Exception caught in behavior definition:\n%s\n'
+            self.get_logger().error('Exception caught in behavior definition:\n%s\n'
                           'See onboard terminal for more information.' % str(e))
             import traceback
             traceback.print_exc()
@@ -248,7 +248,7 @@ class FlexbeOnboard(Node):
 
         # initialize behavior parameters
         if len(msg.arg_keys) > 0:
-            Logger.loginfo('The following parameters will be used:')
+            self.get_logger().info('The following parameters will be used:')
         try:
             for i in range(len(msg.arg_keys)):
                 # action call has empty string as default, not a valid param key
@@ -260,11 +260,11 @@ class FlexbeOnboard(Node):
                     behavior = name_split[0] if len(name_split) == 2 else ''
                     key = name_split[-1]
                     suffix = ' (' + behavior + ')' if behavior != '' else ''
-                    Logger.loginfo(key + ' = ' + msg.arg_values[i] + suffix)
+                    self.get_logger().info(key + ' = ' + msg.arg_values[i] + suffix)
                 else:
-                    Logger.logwarn('Parameter ' + msg.arg_keys[i] + ' (set to ' + msg.arg_values[i] + ') not defined')
+                    self.get_logger().warn('Parameter ' + msg.arg_keys[i] + ' (set to ' + msg.arg_values[i] + ') not defined')
         except Exception as e:
-            Logger.logerr('Failed to initialize parameters:\n%s' % str(e))
+            self.get_logger().error('Failed to initialize parameters:\n%s' % str(e))
             self._pub.publish(self.status_topic, BEStatus(behavior_id=msg.behavior_checksum, code=BEStatus.ERROR))
             return
 
@@ -272,9 +272,9 @@ class FlexbeOnboard(Node):
         try:
             be.set_up(id=msg.behavior_checksum, autonomy_level=msg.autonomy_level, debug=False)
             be.prepare_for_execution(self._convert_input_data(msg.input_keys, msg.input_values))
-            Logger.loginfo('State machine built.')
+            self.get_logger().info('State machine built.')
         except Exception as e:
-            Logger.logerr('Behavior construction failed!\n%s\n'
+            self.get_logger().error('Behavior construction failed!\n%s\n'
                           'See onboard terminal for more information.' % str(e))
             import traceback
             traceback.print_exc()
@@ -291,7 +291,7 @@ class FlexbeOnboard(Node):
 
     def _is_switchable(self, be):
         if self.be.name != be.name:
-            Logger.logerr('Unable to switch behavior, names do not match:\ncurrent: %s <--> new: %s' %
+            self.get_logger().error('Unable to switch behavior, names do not match:\ncurrent: %s <--> new: %s' %
                           (self.be.name, be.name))
             return False
         # locked inside
@@ -334,7 +334,7 @@ class FlexbeOnboard(Node):
                 # unquoted strings will raise a ValueError, so leave it as string in this case
                 result[k] = str(v)
             except SyntaxError as se:
-                Logger.loginfo('Unable to parse input value for key "%s", assuming string:\n%s\n%s' %
+                self.get_logger().info('Unable to parse input value for key "%s", assuming string:\n%s\n%s' %
                                (k, str(v), str(se)))
                 result[k] = str(v)
         return result
