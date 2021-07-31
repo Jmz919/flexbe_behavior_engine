@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import rostopic
 from flexbe_core import EventState, Logger
 
 from flexbe_core.proxy import ProxySubscriberCached
@@ -20,10 +19,11 @@ class SubscriberState(EventState):
     <= unavailable 				The topic is not available when this state becomes actives.
     '''
 
-    def __init__(self, topic, blocking=True, clear=False):
+    def __init__(self, topic, msg_type="", blocking=True, clear=False):
         super(SubscriberState, self).__init__(outcomes=['received', 'unavailable'],
                                               output_keys=['message'])
         self._topic = topic
+        self._msg_type = message_type
         self._blocking = blocking
         self._clear = clear
         self._connected = False
@@ -53,9 +53,9 @@ class SubscriberState(EventState):
             self._sub.remove_last_msg(self._topic)
 
     def _connect(self):
-        msg_type, msg_topic, _ = rostopic.get_topic_class(self._topic)
-        if msg_topic == self._topic:
-            self._sub = ProxySubscriberCached({self._topic: msg_type})
+        try:
+            self._sub = ProxySubscriberCached({self._topic: self._msg_type})
             self._connected = True
             return True
-        return False
+        except Exception as e:
+            return False

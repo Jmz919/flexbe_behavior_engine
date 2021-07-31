@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import re
+import rclpy
 import rospy
 import rospkg
 import roslaunch
@@ -49,8 +50,14 @@ class TestContext(object):
 class LaunchContext(TestContext):
     """ Test context that runs a specified launch file configuration. """
 
-    def __init__(self, launch_config, wait_cond="True"):
-        self._run_id = rospy.get_param('/run_id')
+    def __init__(self, node, launch_config, wait_cond="True"):
+        self._node = node
+
+        try:
+            self._run_id = self._node.get_parameter('/run_id').get_parameter_value()
+        except ParameterNotDeclaredException as e:
+            self._node.get_logger().error('Unable to get parameter: /run_id')
+
         launchpath = None
         launchcontent = None
 
@@ -92,7 +99,7 @@ class LaunchContext(TestContext):
         self._launched_proc_names = [p.name for p in self._launchrunner.pm.procs]
 
         try:
-            check_running_rate = rospy.Rate(10)
+            check_running_rate = rclpy.Rate(10)
             is_running = False
             while not is_running:
                 is_running = eval(self._wait_cond)
@@ -109,8 +116,8 @@ class LaunchContext(TestContext):
         self._launchrunner.spin_once()
 
     def wait_for_finishing(self):
-        check_exited_rate = rospy.Rate(10)
-        rospy.loginfo("Waiting for all launched nodes to exit")
+        check_exited_rate = rclpy.Rate(10)
+        self._node.get_logger().info("Waiting for all launched nodes to exit")
         while not all(name in self._exit_codes for name in self._launched_proc_names):
             check_exited_rate.sleep()
 

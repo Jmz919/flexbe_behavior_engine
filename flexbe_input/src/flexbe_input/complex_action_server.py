@@ -49,17 +49,15 @@ def nop_cb(goal_handle):
 ## @class ComplexActionServer
 ## @brief The ComplexActionServer
 ## Operate with concurrent goals in a multi-threaded fashion
-class ComplexActionServer(Node):
+class ComplexActionServer(object):
     ## @brief Constructor for a ComplexActionServer
     ## @param name A name for the action server
     ## @param execute_cb Optional callback that gets called in a separate thread whenever
     ## a new goal is received, allowing users to have blocking callbacks.
     ## Adding an execute callback also deactivates the goalCallback.
     ## @param  auto_start A boolean value that tells the ActionServer wheteher or not to start publishing as soon as it comes up. THIS SHOULD ALWAYS BE SET TO FALSE TO AVOID RACE CONDITIONS and start() should be called after construction of the server.
-    def __init__(self, name, ActionSpec, execute_cb = None, auto_start = True):
-        super().__init__('complex_action_server')
-        Logger.initialize()
-
+    def __init__(self, node, name, ActionSpec, execute_cb = None, auto_start = True):
+        self.node = node
         self.goals_received_ = 0;
         self.goal_queue_ = six.moves.queue.Queue()
 
@@ -79,8 +77,8 @@ class ComplexActionServer(Node):
 
         self.execute_condition = threading.Condition(self.lock);
 
-        self.current_goal = ServerGoalHandle();
-        # self.next_goal = ServerGoalHandle();
+        self.current_goal = None;
+        self.next_goal = None;
 
         if self.execute_callback:
             self.execute_thread = threading.Thread(None, self.executeLoop);
@@ -91,7 +89,7 @@ class ComplexActionServer(Node):
 
         #create the action server
         # self.action_server = ActionServer(name, ActionSpec, self.internal_goal_callback,self.internal_preempt_callback,auto_start);
-        self.action_server = ActionServer(self, ActionSpec, name, self.internal_goal_callback);
+        self.action_server = ActionServer(node, ActionSpec, name, self.internal_goal_callback);
 
 
 
@@ -117,9 +115,10 @@ class ComplexActionServer(Node):
             current_goal = self.goal_queue_.get()
 
             #set the status of the current goal to be active
-            current_goal.set_accepted("This goal has been accepted by the simple action server");
+            # current_goal.set_accepted("This goal has been accepted by the simple action server");
+            current_goal.succeed()
 
-            return current_goal#.get_goal();
+            return current_goal;
 
 
     ## @brief Allows  polling implementations to query about the availability of a new goal
@@ -131,7 +130,7 @@ class ComplexActionServer(Node):
     ## @brief Allows  polling implementations to query about the status of the current goal
     ## @return True if a goal is active, false otherwise
     def is_active(self):
-       if not self.current_goal.get_goal():
+       if self.current_goal and not self.current_goal.get_goal():
            return False;
 
        status = self.current_goal.get_goal_status().status;
@@ -144,7 +143,8 @@ class ComplexActionServer(Node):
       with self.action_server.lock, self.lock:
           if not result:
               result=self.get_default_result();
-          goal_handle.set_succeeded(result,text)
+          # goal_handle.set_succeeded(result,text)
+          goal_handle.succeed()
 
     ## @brief Sets the status of the active goal to aborted
     ## @param  result An optional result to send back to any clients of the goal
@@ -152,7 +152,8 @@ class ComplexActionServer(Node):
         with self.action_server.lock, self.lock:
             if not result:
                 result=self.get_default_result();
-            goal_handle.set_aborted(result,text)
+            # goal_handle.set_aborted(result,text)
+            goal_handle.abort()
 
     ## @brief Publishes feedback for a given goal
     ## @param  feedback Shared pointer to the feedback to publish
@@ -161,7 +162,8 @@ class ComplexActionServer(Node):
 
 
     def get_default_result(self):
-        return self.action_server.ActionResultType();
+        # return self.action_server.ActionResultType();
+        return self.action_server.action_type
 
     ## @brief Allows users to register a callback to be invoked when a new goal is available
     ## @param cb The callback to be invoked
@@ -173,8 +175,8 @@ class ComplexActionServer(Node):
 
 
     ## @brief Explicitly start the action server, used it auto_start is set to false
-    def start(self):
-        self.action_server.start();
+    # def start(self):
+    #     self.action_server.start();
 
 
     ## @brief Callback for when the ActionServer receives a new goal and passes it on
@@ -182,10 +184,10 @@ class ComplexActionServer(Node):
           self.execute_condition.acquire();
 
           try:
-              Logger.logdebug("A new goal %shas been recieved by the single goal action server",goal.get_goal_id().id)
+              Logger.logdebug("A new goal %shas been recieved by the single goal action server",goal.goal_id)
 
               print("got a goal")
-              # self.next_goal = goal;
+              self.next_goal = goal;
               self.new_goal = True;
               self.goals_received_ += 1
 

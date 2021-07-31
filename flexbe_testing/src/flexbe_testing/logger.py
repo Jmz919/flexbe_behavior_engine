@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 import traceback
 import rospy
-
+import rclpy
+from rclpy.node import Node
 
 class Logger(object):
     """ Bundles static methods for test case logging. """

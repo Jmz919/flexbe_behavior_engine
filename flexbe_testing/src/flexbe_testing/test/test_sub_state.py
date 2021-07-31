@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import rospy
+import rclpy
 from flexbe_core import EventState
 from flexbe_core.proxy import ProxySubscriberCached
 
@@ -14,11 +14,11 @@ class TestSubState(EventState):
 		self._topic = topic
 		self._sub = ProxySubscriberCached({self._topic: String})
 		self._msg_counter = 0
-		self._timeout = rospy.Time.now() + rospy.Duration(1.5)
+		self._timeout = rclpy.Time.now() + rclpy.Duration(1.5)
 
-		
+
 	def execute(self, userdata):
-		if self._msg_counter == 0 and rospy.Time.now() > self._timeout:
+		if self._msg_counter == 0 and rclpy.Time.now() > self._timeout:
 			userdata.output_value = None
 			return 'unavailable'
 
@@ -30,4 +30,3 @@ class TestSubState(EventState):
 
 		if self._msg_counter == 3:
 			return 'received'
-

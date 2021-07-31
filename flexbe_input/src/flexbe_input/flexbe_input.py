@@ -2,6 +2,9 @@
 
 import roslib; roslib.load_manifest('flexbe_input')
 import pickle
+import rclpy
+from rclpy.node import Node
+from rclpy.action import ActionClient
 import actionlib
 import threading
 
@@ -16,14 +19,14 @@ Created on 02/13/2015
 
 class BehaviorInput(object):
 
-	def __init__(self):
+	def __init__(self, node):
 		'''
 		Constructor
 		'''
 		#onboard connection
-		Logger.initialize()
+		self._node = node
 		self._as = ComplexActionServer('flexbe/behavior_input', BehaviorInputAction, execute_cb=self.execute_cb, auto_start = False)
-		self._as.start()
+		# self._as.start()
 
 		Logger.loginfo("Ready for data requests...")
 
@@ -31,8 +34,7 @@ class BehaviorInput(object):
 		Logger.loginfo("--> Got a request!")
 		Logger.loginfo('"%s"' % goal.msg)
 
-
-		relay_ocs_client_ = actionlib.SimpleActionClient('flexbe/operator_input', BehaviorInputAction)
+		relay_ocs_client_ = ActionClient(self._node, BehaviorInputAction, 'flexbe/operator_input')
 
 		# wait for data msg
 		print("waiting")
@@ -42,8 +44,8 @@ class BehaviorInput(object):
 		# Fill in the goal here
 		relay_ocs_client_.send_goal(goal)
 		print("waiting for result")
-		relay_ocs_client_.wait_for_result()
-		print("got result")
+		# relay_ocs_client_.wait_for_result()
+		# print("got result")
 
 		result = BehaviorInputResult()
 		result = relay_ocs_client_.get_result()

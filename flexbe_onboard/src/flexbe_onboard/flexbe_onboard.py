@@ -27,7 +27,6 @@ class FlexbeOnboard(Node):
     def __init__(self):
         super().__init__("flexbe_onboard")
         self.be = None
-        Logger.initialize()
         self._tracked_imports = list()
         # prepare temp folder
         self._tmp_folder = tempfile.mkdtemp()

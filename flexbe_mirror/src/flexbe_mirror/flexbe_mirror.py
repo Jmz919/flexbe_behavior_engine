@@ -15,7 +15,6 @@ from std_msgs.msg import Empty, String, Int32, UInt8
 class FlexbeMirror(object):
 
     def __init__(self):
-        Logger.initialize()
         self._sm = None
 
         # set up proxys for sm <--> GUI communication
