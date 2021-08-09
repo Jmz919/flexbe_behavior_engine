@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import os
-import rospkg
-import rosbag
+# import rospkg
+# import rosbag
+from ament_index_python.packages import get_package_share_directory
+import rosbag2
 
 from .logger import Logger
 
@@ -19,8 +21,9 @@ class DataProvider(object):
                 bagpath = os.path.expanduser(bagfile)
             # package-relative path
             else:
-                rp = rospkg.RosPack()
-                pkgpath = rp.get_path(bagfile.split('/')[0])
+                # rp = rospkg.RosPack()
+                # pkgpath = rp.get_path(bagfile.split('/')[0])
+                pkgpath = get_package_share_directory(bagfile.split('/')[0])
                 bagpath = os.path.join(pkgpath, '/'.join(bagfile.split('/')[1:]))
             self._bag = rosbag.Bag(bagpath)
             Logger.print_positive('using data source: %s' % bagpath)

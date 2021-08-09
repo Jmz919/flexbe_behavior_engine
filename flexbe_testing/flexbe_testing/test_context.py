@@ -2,19 +2,20 @@
 import os
 import re
 import rclpy
-import rospy
-import rospkg
+from ament_index_python.packages import get_package_share_directory
+
 import roslaunch
 
 from .logger import Logger
 
 
 class Callback(roslaunch.pmon.ProcessListener):
-    def __init__(self, callback):
+    def __init__(self, callback, node):
         self._callback = callback
+        self._node = node
 
     def process_died(self, process_name, exit_code):
-        rospy.loginfo("Process {} exited with {}".format(process_name, exit_code))
+        self._node.get_logger().info("Process {} exited with {}".format(process_name, exit_code))
         self._callback(process_name, exit_code)
 
 
@@ -69,8 +70,10 @@ class LaunchContext(TestContext):
             launchpath = os.path.expanduser(launch_config)
         # load from package path
         elif re.match(r'.+\.launch$', launch_config):
-            rp = rospkg.RosPack()
-            pkgpath = rp.get_path(launch_config.split('/')[0])
+            # rp = rospkg.RosPack()
+            # pkgpath = rp.get_path(launch_config.split('/')[0])
+
+            pkgpath = get_package_share_directory(launch_config.split('/')[0])
             launchpath = os.path.join(pkgpath, '/'.join(launch_config.split('/')[1:]))
         # load from config definition
         else:

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import traceback
-import rospy
 import rclpy
 from rclpy.node import Node
 
@@ -8,16 +7,37 @@ class Logger(object):
     """ Bundles static methods for test case logging. """
 
     @classmethod
-    def _param_positive(cls):
-        return not cls._param_compact() and rospy.get_param('~print_debug_positive', True)
+    def _param_positive(cls, node):
+        print_debug_positive = False
+        try:
+            print_debug_positive = node.get_parameter('~print_debug_positive').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~print_debug_positive', True)
+            print_debug_positive = node.get_parameter('~print_debug_positive').get_parameter_value()
+
+        return not cls._param_compact() and print_debug_positive
 
     @classmethod
-    def _param_negative(cls):
-        return cls._param_compact() or rospy.get_param('~print_debug_negative', True)
+    def _param_negative(cls, node):
+        print_debug_negative = False
+        try:
+            print_debug_negative = node.get_parameter('~print_debug_negative').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~print_debug_negative', True)
+            print_debug_positive = node.get_parameter('~print_debug_negative').get_parameter_value()
+
+        return cls._param_compact() or print_debug_negative
 
     @classmethod
-    def _param_compact(cls):
-        return rospy.get_param('~compact_format', False)
+    def _param_compact(cls, node):
+        compact_format = False
+        try:
+            compact_format = node.get_parameter('~compact_format').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~compact_format', False)
+            compact_format = node.get_parameter('~compact_format').get_parameter_value()
+
+        return compact_format
 
     @classmethod
     def _prefix(cls):
@@ -30,14 +50,36 @@ class Logger(object):
     _counter_value = 0
 
     @classmethod
-    def mute_rospy(cls):
-        """ Conditionally mute the rospy logging channels. """
-        if cls._param_compact() or rospy.get_param('~mute_info', False):
-            rospy.loginfo = rospy.logdebug
-        if cls._param_compact() or rospy.get_param('~mute_warn', False):
-            rospy.logwarn = rospy.logdebug
-        if not cls._param_compact() and rospy.get_param('~mute_error', False):
-            rospy.logerr = rospy.logdebug
+    def mute_rclpy(cls, node):
+        """ Conditionally mute the rclpy logging channels. """
+        mute_info = False
+        mute_warn = False
+        mute_error = False
+
+        try:
+            mute_info = node.get_parameter('~mute_info').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~mute_info', False)
+            mute_info = node.get_parameter('~mute_info').get_parameter_value()
+
+        try:
+            mute_warn = node.get_parameter('~mute_warn').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~mute_warn', False)
+            mute_warn = node.get_parameter('~mute_warn').get_parameter_value()
+
+        try:
+            mute_error = node.get_parameter('~mute_error').get_parameter_value()
+        except Exception as e:
+            node.declare_parameter('~mute_error', False)
+            mute_error = node.get_parameter('~mute_error').get_parameter_value()
+
+        if cls._param_compact() or mute_info:
+            node.get_logger().info = node.get_logger().debug
+        if cls._param_compact() or mute_warn:
+            node.get_logger().warn = node.get_logger().debug
+        if not cls._param_compact() and mute_error:
+            node.get_logger().error = node.get_logger().debug
 
     @classmethod
     def print_positive(cls, text):

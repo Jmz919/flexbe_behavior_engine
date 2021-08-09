@@ -16,26 +16,26 @@ import yaml
 import xml.etree.ElementTree as ET
 import threading
 
-class BehaviorLauncher(Node):
+class BehaviorLauncher(object):
 
 	MIN_VERSION = '2.2.0'
 
-	def __init__(self):
-		super().__init__("behavior_launcher")
+	def __init__(self, node):
+		self._node = node
 		self._ready_event = threading.Event()
 
-		self._sub = self.create_subscription(BehaviorRequest, "flexbe/request_behavior", self._callback, 100)
-		self._version_sub = self.create_subscription(String, "flexbe/ui_version", self._version_callback, 100)
+		self._sub = self._node.create_subscription(BehaviorRequest, "flexbe/request_behavior", self._callback, 100)
+		self._version_sub = self._node.create_subscription(String, "flexbe/ui_version", self._version_callback, 100)
 
-		self._pub = self.create_publisher(BehaviorSelection, "flexbe/start_behavior", 100)
-		self._status_pub = self.create_publisher(BEStatus, "flexbe/status", 100)
-		self._status_sub = self.create_subscription(BEStatus, "flexbe/status", self._status_callback, 100)
-		self._mirror_pub = self.create_publisher(ContainerStructure, "flexbe/mirror/structure", 100)
+		self._pub = self._node.create_publisher(BehaviorSelection, "flexbe/start_behavior", 100)
+		self._status_pub = self._node.create_publisher(BEStatus, "flexbe/status", 100)
+		self._status_sub = self._node.create_subscription(BEStatus, "flexbe/status", self._status_callback, 100)
+		self._mirror_pub = self._node.create_publisher(ContainerStructure, "flexbe/mirror/structure", 100)
 
 		# self._rp = RosPack()
 		self._behavior_lib = BehaviorLibrary()
 
-		self.get_logger().info("%d behaviors available, ready for start request." % self._behavior_lib.count_behaviors())
+		self._node.get_logger().info("%d behaviors available, ready for start request." % self._behavior_lib.count_behaviors())
 
 	def _status_callback(self, msg):
 		if msg.code in [BEStatus.READY, BEStatus.FINISHED, BEStatus.FAILED, BEStatus.ERROR]:
@@ -44,11 +44,11 @@ class BehaviorLauncher(Node):
 	def _callback(self, msg):
 		be_id, behavior = self._behavior_lib.find_behavior(msg.behavior_name)
 		if be_id is None:
-			self.get_logger().error("Did not find behavior with requested name: %s" % msg.behavior_name)
+			self._node.get_logger().error("Did not find behavior with requested name: %s" % msg.behavior_name)
 			self._status_pub.publish(BEStatus(code=BEStatus.ERROR))
 			return
 
-		self.get_logger().info("Request for behavior " + behavior["name"])
+		self._node.get_logger().info("Request for behavior " + behavior["name"])
 
 		be_selection = BehaviorSelection()
 		be_selection.behavior_id = be_id
@@ -74,7 +74,7 @@ class BehaviorLauncher(Node):
 					be_selection.arg_keys.append(k)
 					be_selection.arg_values.append(v)
 		except Exception as e:
-			self.get_logger().warn('Failed to parse and substitute behavior arguments, will use direct input.\n%s' % str(e))
+			self._node.get_logger().warn('Failed to parse and substitute behavior arguments, will use direct input.\n%s' % str(e))
 			be_selection.arg_keys = msg.arg_keys
 			be_selection.arg_values = msg.arg_values
 
@@ -87,8 +87,8 @@ class BehaviorLauncher(Node):
 		try:
 			be_filepath_new = self._behavior_lib.get_sourcecode_filepath(be_id)
 		except Exception as e:
-			self.get_logger().error("Could not find behavior package '%s'" % (behavior["package"]))
-			self.get_logger().info("Have you updated your ROS_PACKAGE_PATH after creating the behavior?")
+			self._node.get_logger().error("Could not find behavior package '%s'" % (behavior["package"]))
+			self._node.get_logger().info("Have you updated your ROS_PACKAGE_PATH after creating the behavior?")
 			return
 
 		with open(be_filepath_new, "r") as f:
@@ -101,7 +101,7 @@ class BehaviorLauncher(Node):
 				be_structure.behavior_id = be_selection.behavior_checksum
 				self._mirror_pub.publish(be_structure)
 			self._pub.publish(be_selection)
-			self.get_logger().info("No changes to behavior version.")
+			self._node.get_logger().info("No changes to behavior version.")
 			return
 
 		with open(be_filepath_old, "r") as f:
@@ -124,7 +124,7 @@ class BehaviorLauncher(Node):
 		vui = self._parse_version(msg.data)
 		vex = self._parse_version(BehaviorLauncher.MIN_VERSION)
 		if vui < vex:
-			self.get_logger().warn('FlexBE App needs to be updated!\n' \
+			self._node.get_logger().warn('FlexBE App needs to be updated!\n' \
 				+ 'Require at least version %s, but have %s\n' % (BehaviorLauncher.MIN_VERSION, msg.data) \
 				+ 'Please run a "git pull" in "roscd flexbe_app".')
 

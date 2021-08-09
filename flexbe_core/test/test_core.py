@@ -2,7 +2,6 @@
 import unittest
 import time
 import rclpy
-import rospy
 
 from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 
@@ -66,7 +65,6 @@ class TestCore(unittest.TestCase):
         return state.parent.execute(None)
 
     def assertMessage(self, sub, topic, msg, timeout=1):
-        # rate = rospy.Rate(100)
         rate = rclpy.Rate(100)
         for i in range(int(timeout * 100)):
             if sub.has_msg(topic):
@@ -87,7 +85,6 @@ class TestCore(unittest.TestCase):
                 self.assertEqual(expected, actual, error)
 
     def assertNoMessage(self, sub, topic, timeout=1):
-        # rate = rospy.Rate(100)
         rate = rclpy.Rate(100)
         for i in range(int(timeout * 100)):
             if sub.has_msg(topic):
@@ -103,7 +100,6 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        # rospy.sleep(0.2)  # wait for pub/sub
         time.sleep(0.2)
 
         # enter during first execute
@@ -147,7 +143,6 @@ class TestCore(unittest.TestCase):
         out_topic = 'flexbe/mirror/outcome'
         req_topic = 'flexbe/outcome_request'
         sub = ProxySubscriberCached({out_topic: UInt8, req_topic: OutcomeRequest})
-        # rospy.sleep(0.2)  # wait for pub/sub
         time.sleep(0.2)
 
         # return outcome in full autonomy, no request
@@ -184,7 +179,6 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        # rospy.sleep(0.2)  # wait for pub/sub
         time.sleep(0.2)
 
         # preempt when trigger variable is set
@@ -208,7 +202,6 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        # rospy.sleep(0.2)  # wait for pub/sub
         time.sleep(0.2)
 
         # lock and unlock as commanded, return outcome after unlock
@@ -259,7 +252,6 @@ class TestCore(unittest.TestCase):
         state = self._create()
         fb_topic = 'flexbe/command_feedback'
         sub = ProxySubscriberCached({fb_topic: CommandFeedback})
-        # rospy.sleep(0.2)  # wait for pub/sub
         time.sleep(0.2)
 
         # return requested outcome
@@ -364,7 +356,6 @@ class TestCore(unittest.TestCase):
         class FakeRate(object):
 
             def remaining(self):
-                # return rospy.Duration(0)
                 return rclpy.Duration(0)
 
             def sleep(self):
@@ -437,7 +428,7 @@ class TestCore(unittest.TestCase):
                 self._out_content = out_content
 
             def execute(self, userdata):
-                rospy.logwarn('\033[0m%s\n%s' % (self.path, str(userdata)))  # log for manual inspection
+                self.node.get_logger().warn('\033[0m%s\n%s' % (self.path, str(userdata))) # log for manual inspection
                 self.data = userdata.data_in
                 userdata.data_out = self._out_content
                 return 'done'

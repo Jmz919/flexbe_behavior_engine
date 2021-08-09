@@ -6,9 +6,8 @@ from rclpy.executors import MultiThreadedExecutor, SingleThreadedExecutor
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached, ProxyActionClient, ProxyServiceCaller
 
 from std_msgs.msg import String
-from std_srvs.srv import Trigger, TriggerRequest
-from flexbe_msgs.msg import BehaviorExecutionAction, BehaviorExecutionGoal, BehaviorExecutionResult
-
+from std_srvs.srv import Trigger
+from flexbe_msgs.action import BehaviorExecution
 
 class TestProxies(unittest.TestCase):
     def setUp(self):
@@ -35,11 +34,9 @@ class TestProxies(unittest.TestCase):
         pub.publish(t1, String('1'))
         pub.publish(t2, String('2'))
 
-        time.sleep(0.5)
-        # rospy.sleep(.5)  # make sure latched message is sent before subscriber is added
+        time.sleep(0.5) # make sure latched message is sent before subscriber is added
         sub = ProxySubscriberCached({t2: String})
-        time.sleep(0.5)
-        # rospy.sleep(.5)  # make sure latched message can be received before checking
+        time.sleep(0.5) # make sure latched message can be received before checking
 
         self.assertTrue(sub.has_msg(t1))
         self.assertEqual(sub.get_last_msg(t1).data, '1')
@@ -59,16 +56,14 @@ class TestProxies(unittest.TestCase):
 
         pub.publish(t1, String('1'))
         pub.publish(t1, String('2'))
-        time.sleep(0.5)
-        # rospy.sleep(.5)  # make sure messages can be received
+        time.sleep(0.5) # make sure messages can be received
 
         self.assertTrue(sub.has_msg(t1))
         self.assertTrue(sub.has_buffered(t1))
         self.assertEqual(sub.get_from_buffer(t1).data, '1')
 
         pub.publish(t1, String('3'))
-        time.sleep(0.5)
-        # rospy.sleep(.5)  # make sure messages can be received
+        time.sleep(0.5) # make sure messages can be received
 
         self.assertEqual(sub.get_from_buffer(t1).data, '2')
         self.assertEqual(sub.get_from_buffer(t1).data, '3')
@@ -78,11 +73,10 @@ class TestProxies(unittest.TestCase):
     def test_service_caller(self):
         t1 = '/service_1'
         self.node.create_service(Trigger, t1, lambda r: (True, 'ok'))
-        # rospy.Service(t1, Trigger, lambda r: (True, 'ok'))
 
         srv = ProxyServiceCaller({t1: Trigger})
 
-        result = srv.call(t1, TriggerRequest())
+        result = srv.call(t1, Trigger.Request())
         self.assertIsNotNone(result)
         self.assertTrue(result.success)
         self.assertEqual(result.message, 'ok')
@@ -96,21 +90,19 @@ class TestProxies(unittest.TestCase):
         server = None
 
         def execute_cb(goal):
-            # rospy.sleep(.5)
             time.sleep(0.5)
             if server.is_preempt_requested():
                 server.set_preempted()
             else:
-                server.set_succeeded(BehaviorExecutionResult(outcome='ok'))
+                server.set_succeeded(BehaviorExecution.Result(outcome='ok'))
 
-        server = actionlib.SimpleActionServer(t1, BehaviorExecutionAction, execute_cb, auto_start=False)
+        server = actionlib.SimpleActionServer(t1, BehaviorExecution, execute_cb, auto_start=False)
         server.start()
 
-        client = ProxyActionClient({t1: BehaviorExecutionAction})
+        client = ProxyActionClient({t1: BehaviorExecution})
         self.assertFalse(client.has_result(t1))
-        client.send_goal(t1, BehaviorExecutionGoal())
+        client.send_goal(t1, BehaviorExecution.Goal())
 
-        # rate = rospy.Rate(20)
         rate = rclpy.Rate(20)
         for i in range(20):
             self.assertTrue(client.is_active(t1) or client.has_result(t1))
@@ -120,17 +112,16 @@ class TestProxies(unittest.TestCase):
         result = client.get_result(t1)
         self.assertEqual(result.outcome, 'ok')
 
-        client.send_goal(t1, BehaviorExecutionGoal())
-        # rospy.sleep(.1)
+        client.send_goal(t1, BehaviorExecution.Goal())
         time.sleep(0.1)
+
         client.cancel(t1)
-        # rospy.sleep(.9)
         time.sleep(0.9)
 
         self.assertFalse(client.is_active(t1))
 
         self.assertFalse(client.is_available('/not_there'))
-        client = ProxyActionClient({'/invalid': BehaviorExecutionAction}, wait_duration=.1)
+        client = ProxyActionClient({'/invalid': BehaviorExecution}, wait_duration=.1)
         self.assertFalse(client.is_available('/invalid'))
 
 

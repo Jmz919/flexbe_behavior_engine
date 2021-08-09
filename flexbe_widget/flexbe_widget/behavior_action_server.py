@@ -16,22 +16,22 @@ import yaml
 import xml.etree.ElementTree as ET
 
 
-class BehaviorActionServer(Node):
+class BehaviorActionServer(object):
 
-	def __init__(self):
-		super().__init__("behavior_action_server")
+	def __init__(self, node):
+		self._node = node
 		self._behavior_started = False
 		self._preempt_requested = False
 		self._current_state = None
 		self._active_behavior_id = None
 
-		self._pub = self.create_publisher(BehaviorSelection, 'flexbe/start_behavior', 100)
-		self._preempt_pub = self.create_publisher(Empty, 'flexbe/command/preempt', 100)
-		self._status_pub = self.create_subscription(BEStatus, 'flexbe/status', self._state_cb, 100)
-		self._state_pub = self.create_subscription(String, 'flexbe/behavior_update', self._state_cb, 100)
+		self._pub = self._node.create_publisher(BehaviorSelection, 'flexbe/start_behavior', 100)
+		self._preempt_pub = self._node.create_publisher(Empty, 'flexbe/command/preempt', 100)
+		self._status_pub = self._node.create_subscription(BEStatus, 'flexbe/status', self._state_cb, 100)
+		self._state_pub = self._node.create_subscription(String, 'flexbe/behavior_update', self._state_cb, 100)
 
 		# self._as = actionlib.SimpleActionServer('flexbe/execute_behavior', BehaviorExecutionAction, None, False)
-		self._as = ActionServer(self, BehaviorExecutionAction, 'flexbe/execute_behavior', self._goal_cb)
+		self._as = ActionServer(self._node, BehaviorExecutionAction, 'flexbe/execute_behavior', self._goal_cb)
 		self._as.register_cancel_callback(self._preempt_cb)
 		self._as.register_goal_callback(self._goal_cb)
 
@@ -41,17 +41,17 @@ class BehaviorActionServer(Node):
 		# start action server after all member variables have been initialized
 		# self._as.start()
 
-		self.get_logger().info("%d behaviors available, ready for start request." % self._behavior_lib.count_behaviors())
+		self._node.get_logger().info("%d behaviors available, ready for start request." % self._behavior_lib.count_behaviors())
 
 
 	def _goal_cb(self, goal_handle):
 		# if self._as.is_active() or not self._as.is_new_goal_available():
 		# 	return
 		goal = goal_handle.request()
-		self.get_logger().info('Received a new request to start behavior: %s' % goal.behavior_name)
+		self._node.get_logger().info('Received a new request to start behavior: %s' % goal.behavior_name)
 		be_id, behavior = self._behavior_lib.find_behavior(goal.behavior_name)
 		if be_id is None:
-			self.get_logger().error("Deny goal: Did not find behavior with requested name %s" % goal.behavior_name)
+			self._node.get_logger().error("Deny goal: Did not find behavior with requested name %s" % goal.behavior_name)
 			self._as.set_preempted()
 			return
 
@@ -85,7 +85,7 @@ class BehaviorActionServer(Node):
 					be_selection.arg_keys.append(k)
 					be_selection.arg_values.append(v)
 		except Exception as e:
-			self.get_logger().warn('Failed to parse and substitute behavior arguments, will use direct input.\n%s' % str(e))
+			self._node.get_logger().warn('Failed to parse and substitute behavior arguments, will use direct input.\n%s' % str(e))
 			be_selection.arg_keys = goal.arg_keys
 			be_selection.arg_values = goal.arg_values
 		be_selection.input_keys = goal.input_keys
@@ -125,12 +125,12 @@ class BehaviorActionServer(Node):
 		if not self._behavior_started:
 			return
 		self._preempt_pub.publish()
-		self.get_logger().info('Behavior execution preempt requested!')
+		self._node.get_logger().info('Behavior execution preempt requested!')
 
 
 	def _status_cb(self, msg):
 		if msg.code == BEStatus.ERROR:
-			self.get_logger().error('Failed to run behavior! Check onboard terminal for further infos.')
+			self._node.get_logger().error('Failed to run behavior! Check onboard terminal for further infos.')
 			self._as.set_aborted('')
 			# Call goal cb in case there is a queued goal available
 			self._goal_cb()
@@ -138,7 +138,7 @@ class BehaviorActionServer(Node):
 		if not self._behavior_started and msg.code == BEStatus.STARTED:
 			self._behavior_started = True
 			self._active_behavior_id = msg.behavior_id
-			self.get_logger().info('Behavior execution has started!')
+			self._node.get_logger().info('Behavior execution has started!')
 			# Preempt if the goal was asked to preempt before the behavior started
 			if self._preempt_requested:
 				self._preempt_cb()
@@ -147,16 +147,16 @@ class BehaviorActionServer(Node):
 			return
 
 		if msg.behavior_id != self._active_behavior_id:
-			self.get_logger().warn('Ignored status because behavior id differed ({} vs {})!'.format(msg.behavior_id, self._active_behavior_id))
+			self._node.get_logger().warn('Ignored status because behavior id differed ({} vs {})!'.format(msg.behavior_id, self._active_behavior_id))
 			return
 		elif msg.code == BEStatus.FINISHED:
 			result = msg.args[0] if len(msg.args) >= 1 else ''
-			self.get_logger().info('Finished behavior execution with result "%s"!' % result)
+			self._node.get_logger().info('Finished behavior execution with result "%s"!' % result)
 			self._as.set_succeeded(BehaviorExecutionResult(outcome=result))
 			# Call goal cb in case there is a queued goal available
 			self._goal_cb()
 		elif msg.code == BEStatus.FAILED:
-			self.get_logger().error('Behavior execution failed in state %s!' % str(self._current_state))
+			self._node.get_logger().error('Behavior execution failed in state %s!' % str(self._current_state))
 			self._as.set_aborted('')
 			# Call goal cb in case there is a queued goal available
 			self._goal_cb()
@@ -166,4 +166,4 @@ class BehaviorActionServer(Node):
 		self._current_state = msg.data
 		# if self._as.is_active():
 		self._as.publish_feedback(BehaviorExecutionFeedback(self._current_state))
-		self.get_logger().loginfo('Current state: %s' % self._current_state)
+		self._node.get_logger().loginfo('Current state: %s' % self._current_state)

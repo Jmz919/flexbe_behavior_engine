@@ -1,12 +1,9 @@
-#!/usr/bin/env python
 
 #
 #    Please use EventState as parent class for new states because it extends all other parent classes.
 #    For a behavior, choose OperatableStateMachine as state machine.
 #
-
-from .core import EventState  # noqa: F401
-from .core import OperatableStateMachine, ConcurrencyContainer, PriorityContainer  # noqa: F401
+from .core import EventState, OperatableStateMachine, ConcurrencyContainer, PriorityContainer  # noqa: F401
 
 from .behavior import Behavior  # noqa: F401
 
@@ -59,3 +56,13 @@ class Autonomy:
     Use this for outcomes that always need an operator input.
     A use of this level is not recommended.
     """
+
+
+__all__ = [
+    'Behavior',
+    'BehaviorLibrary',
+    'Logger',
+    'StateLogger',
+    'set_node',
+    'Autonomy'
+]
