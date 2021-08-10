@@ -50,8 +50,16 @@ class ProxyActionClient(object):
         @param wait_duration: Defines how long to wait for the given client if it is not available right now.
         """
         if topic not in ProxyActionClient._clients:
-            ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
-            self._check_topic_available(topic, wait_duration)
+            topics = ProxyActionClient._node.get_topic_names_and_types()
+            found_server = False
+            for i in range(len(topics)):
+                if topics[i][0] == topic:
+                    found_service = True
+                    break
+
+            if found_server:
+                ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
+                self._check_topic_available(topic, wait_duration)
 
     def send_goal(self, topic, goal):
         """

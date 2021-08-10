@@ -56,7 +56,7 @@ class ProxySubscriberCached(object):
                                                     'msg_queue': [],
                                                     'callbacks': defaultdict(list)}
         if callback is not None:
-            ProxySubscriberCached._topics[topic]['callbacks'].append(callback)
+            ProxySubscriberCached._topics[topic]['callbacks'][topic].append(callback)
 
     def _callback(self, msg, topic):
         """
@@ -89,7 +89,7 @@ class ProxySubscriberCached(object):
         @type callback: function
         @param callback: The callback to be added.
         """
-        ProxySubscriberCached._topics[topic]['callbacks'].append(callback)
+        ProxySubscriberCached._topics[topic]['callbacks'][topic].append(callback)
 
     def enable_buffer(self, topic):
         """

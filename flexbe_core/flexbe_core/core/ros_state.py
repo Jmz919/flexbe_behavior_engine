@@ -15,6 +15,8 @@ class RosState(State):
     def initialize_ros(node):
         RosState._node = node
         RosState._breakpoints = node.declare_parameter('breakpoints', [])
+        ProxyPublisher._initialize(RosState._node)
+        ProxySubscriberCached._initialize(RosState._node)
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)

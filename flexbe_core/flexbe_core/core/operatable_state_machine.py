@@ -95,6 +95,7 @@ class OperatableStateMachine(PreemptableStateMachine):
             outcome = super(OperatableStateMachine, self)._execute_current_state()
             self._last_exception = None
         except Exception as e:
+            # Error here
             outcome = None
             self._last_exception = e
             Logger.logerr('Failed to execute state %s:\n%s' % (self.current_state_label, str(e)))

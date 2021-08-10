@@ -18,6 +18,8 @@ class TestProxies(unittest.TestCase):
         self.executor = MultiThreadedExecutor(context=self.context)
         self.node = rclpy.create_node('TestProxies', context=self.context)
 
+        # rclpy.spin(self.node, self.executor)
+
     @classmethod
     def tearDown(self):
         # self.node.destroy_node()
@@ -25,7 +27,7 @@ class TestProxies(unittest.TestCase):
         rclpy.shutdown(context=self.context)
 
     def test_publish_subscribe(self):
-        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.2)
+        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=5)
         ProxyPublisher._initialize(self.node)
         ProxySubscriberCached._initialize(self.node)
 
@@ -64,7 +66,7 @@ class TestProxies(unittest.TestCase):
         self.assertEqual(sub.get_last_msg(t2).data, '2')
 
     def test_subscribe_buffer(self):
-        # rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.2)
+        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=5)
         ProxyPublisher._initialize(self.node)
         ProxySubscriberCached._initialize(self.node)
 
@@ -96,14 +98,18 @@ class TestProxies(unittest.TestCase):
         self.assertFalse(sub.has_buffered(t1))
 
     def test_service_caller(self):
-        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.2)
+        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=5)
         ProxyServiceCaller._initialize(self.node)
 
         t1 = '/service_1'
 
-        def server_callback():
+        def server_callback(request, response):
+            self.node.get_logger().info("Starting service callback")
+            response.success = True
+            response.message = "ok"
+
             self.node.get_logger().info("Sent service message")
-            return "Serivce message"
+            return response
 
         self.node.create_service(Trigger, t1, server_callback)
 
@@ -122,7 +128,7 @@ class TestProxies(unittest.TestCase):
         self.assertFalse(srv.is_available('/invalid'))
 
     def test_action_client(self):
-        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=1)
+        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=5)
         t1 = '/action_1'
         server = None
 
@@ -159,7 +165,7 @@ class TestProxies(unittest.TestCase):
         client.cancel(t1)
         time.sleep(0.3)
 
-        # self.assertFalse(client.is_active(t1))
+        self.assertFalse(client.is_active(t1))
 
         self.assertFalse(client.is_available('/not_there'))
         client = ProxyActionClient({'/invalid': BehaviorExecution}, wait_duration=.1)

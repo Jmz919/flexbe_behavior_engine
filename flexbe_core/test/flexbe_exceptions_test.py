@@ -21,7 +21,10 @@ def generate_test_description():
 
     test_exceptions = launch.actions.ExecuteProcess(
         cmd=[sys.executable, TEST_PROC_PATH],
-        env=proc_env, output='screen'
+        env=proc_env,
+        output='screen',
+        sigterm_timeout=launch.substitutions.LaunchConfiguration('sigterm_timeout', default=15),
+        sigkill_timeout=launch.substitutions.LaunchConfiguration('sigkill_timeout', default=15)
     )
 
     return (

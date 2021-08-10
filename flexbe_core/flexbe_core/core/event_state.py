@@ -22,6 +22,9 @@ class EventState(OperatableState):
 
     def __init__(self, *args, **kwargs):
         super(EventState, self).__init__(*args, **kwargs)
+        Logger.initialize(EventState._node)
+        StateLogger.initialize_ros(EventState._node)
+
         self.__execute = self.execute
         self.execute = self._event_execute
 

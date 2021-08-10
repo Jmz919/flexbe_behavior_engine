@@ -114,6 +114,8 @@ class ProxyPublisher(object):
         Logger.warning("Waiting for subscribers on %s..." % (topic))
 
     def _wait_for_subscribers(self, pub, timeout=5.0):
+        ProxyPublisher._node.get_logger().info("Waiting for subscribers")
+        Logger.loginfo("Checking for subscribers")
         starting_time = ProxyPublisher._node.get_clock().now()
         rate = ProxyPublisher._node.create_rate(100, ProxyPublisher._node.get_clock())
 

@@ -56,7 +56,6 @@ class ProxyServiceCaller(object):
             services = self._node.get_service_names_and_types()
             found_service = False
             for i in range(len(services)):
-                Logger.loginfo(services[i][0])
                 if services[i][0] == topic:
                     found_service = True
                     break
@@ -87,6 +86,7 @@ class ProxyServiceCaller(object):
         if not self._check_service_available(topic):
             raise ValueError('Cannot call service client %s: Topic not available.' % topic)
         # call service (forward any exceptions)
+        Logger.loginfo("Client about to call service")
         return ProxyServiceCaller._services[topic].call(request)
 
     def call_async(self, topic, request):

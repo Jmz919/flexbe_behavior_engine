@@ -14,6 +14,8 @@ class RosStateMachine(StateMachine):
     @staticmethod
     def initialize_ros(node):
         RosStateMachine._node = node
+        ProxyPublisher._initialize(node)
+        ProxySubscriberCached._initialize(node)
 
     def __init__(self, *args, **kwargs):
         super(RosStateMachine, self).__init__(*args, **kwargs)
