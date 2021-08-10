@@ -1,3 +1,4 @@
+import rclpy
 from threading import Timer
 
 from flexbe_core.logger import Logger
@@ -13,6 +14,7 @@ class ProxyPublisher(object):
 
     def _initialize(node):
         ProxyPublisher._node = node
+        Logger.initialize(node)
 
     def __init__(self, topics={}, qos=None, **kwargs):
         """
@@ -69,10 +71,11 @@ class ProxyPublisher(object):
         if topic not in ProxyPublisher._topics:
             Logger.warning('ProxyPublisher: topic %s not yet registered!' % topic)
             return
-        # try:
-        ProxyPublisher._topics[topic].publish(msg)
-        # except Exception as e:
-        #     Logger.warning('Something went wrong when publishing to %s!\n%s' % (topic, str(e)))
+
+        try:
+            ProxyPublisher._topics[topic].publish(msg)
+        except Exception as e:
+            Logger.warning('Something went wrong when publishing to %s!\n%s' % (topic, str(e)))
 
     def wait_for_any(self, topic, timeout=5.0):
         """
@@ -98,6 +101,7 @@ class ProxyPublisher(object):
             # already printed the warning
             warning_sent = True
 
+        # Problem here
         if not available:
             Logger.error("Waiting for subscribers on %s timed out!" % topic)
             return False
@@ -110,13 +114,21 @@ class ProxyPublisher(object):
         Logger.warning("Waiting for subscribers on %s..." % (topic))
 
     def _wait_for_subscribers(self, pub, timeout=5.0):
-        starting_time = rospy.get_rostime()
-        rate = rospy.Rate(100)
-        while not rospy.is_shutdown():
-            elapsed = rospy.get_rostime() - starting_time
-            if elapsed.to_sec() >= timeout:
-                return False
-            if pub.get_num_connections() >= 1:
+        starting_time = ProxyPublisher._node.get_clock().now()
+        rate = ProxyPublisher._node.create_rate(100, ProxyPublisher._node.get_clock())
+
+        while (ProxyPublisher._node.get_clock().now() - starting_time).nanoseconds / 1e9 < timeout:
+            if pub.get_subscription_count() > 0:
                 return True
             rate.sleep()
+
         return False
+
+        # while rclpy.ok():
+        #     elapsed = ProxyPublisher._node.get_clock().now() - starting_time
+        #     if elapsed.to_sec() >= timeout:
+        #         return False
+        #     if pub.get_subscription_count() >= 1:
+        #         return True
+        #     rate.sleep()
+        # return False

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import rclpy
 from threading import Timer
 
 from flexbe_core.logger import Logger
@@ -17,6 +18,7 @@ class ProxyServiceCaller(object):
     @staticmethod
     def _initialize(node):
         ProxyServiceCaller._node = node
+        Logger.initialize(node)
 
     def __init__(self, topics={}, qos=None, wait_duration=10):
         """
@@ -34,7 +36,7 @@ class ProxyServiceCaller(object):
         for topic, msg_type in topics.items():
             self.setupService(topic, msg_type, qos, wait_duration)
 
-    def setupService(self, topic, msg_type, qos=None, wait_duration=10):
+    def setupService(self, topic, msg_type, qos=QOS_DEFAULT, wait_duration=10):
         """
         Tries to set up a service caller for calling it later.
 
@@ -51,9 +53,17 @@ class ProxyServiceCaller(object):
         @param wait_duration: Defines how long to wait for the given service if it is not available right now.
         """
         if topic not in ProxyServiceCaller._services:
-            qos = qos or QOS_DEFAULT
-            ProxyServiceCaller._services[topic] = ProxyServiceCaller._node.create_client(msg_type, topic, qos)
-            self._check_service_available(topic, wait_duration)
+            services = self._node.get_service_names_and_types()
+            found_service = False
+            for i in range(len(services)):
+                Logger.loginfo(services[i][0])
+                if services[i][0] == topic:
+                    found_service = True
+                    break
+
+            if found_service:
+                ProxyServiceCaller._services[topic] = ProxyServiceCaller._node.create_client(msg_type, topic)
+                self._check_service_available(topic, wait_duration)
 
     def is_available(self, topic):
         """
@@ -134,11 +144,12 @@ class ProxyServiceCaller(object):
         warning_sent = False
         available = False
         try:
-            t = Timer(1, self._print_wait_warning, [topic])
+            t = Timer(0.5, self._print_wait_warning, [topic])
             t.start()
-            rospy.wait_for_service(topic, wait_duration)
+            client.wait_for_service(wait_duration)
+            # rospy.wait_for_service(topic, wait_duration)
             available = True
-        except rospy.exceptions.ROSException:
+        except rclpy.exceptions.ROSInterruptException:
             available = False
 
         try:
@@ -153,6 +164,7 @@ class ProxyServiceCaller(object):
         else:
             if warning_sent:
                 Logger.info("Finally found service %s..." % (topic))
+
         return True
 
     def _print_wait_warning(self, topic):

@@ -1,3 +1,5 @@
+from functools import partial
+from rclpy.duration import Duration
 from rclpy.action import ActionClient
 from threading import Timer
 
@@ -18,6 +20,7 @@ class ProxyActionClient(object):
     @staticmethod
     def _initialize(node):
         ProxyActionClient._node = node
+        Logger.initialize(node)
 
     def __init__(self, topics={}, wait_duration=10):
         """
@@ -65,15 +68,22 @@ class ProxyActionClient(object):
         # reset previous results
         ProxyActionClient._result[topic] = None
         ProxyActionClient._feedback[topic] = None
+        ProxyActionClient._current_topic = topic
         # send goal
-        ProxyActionClient._clients[topic].send_goal(
+        future = ProxyActionClient._clients[topic].send_goal_async(
             goal,
-            done_cb=lambda ts, r: self._done_callback(topic, ts, r),
-            feedback_cb=lambda f: self._feedback_callback(topic, f)
+            feedback_callback=lambda f: self._feedback_callback(topic, f)
         )
 
-    def _done_callback(self, topic, terminal_state, result):
-        ProxyActionClient._result[topic] = result
+        # Logger.loginfo('Sending a goal')
+        # result = ProxyActionClient._clients[topic].send_goal(goal)
+        # Logger.loginfo('Got goal')
+        # self._done_callback(topic, result)
+
+        future.add_done_callback(partial(self._done_callback, topic=topic))
+
+    def _done_callback(self, topic, result):
+        ProxyActionClient._result[ProxyActionClient._current_topic] = result
 
     def _feedback_callback(self, topic, feedback):
         ProxyActionClient._feedback[topic] = feedback
@@ -158,7 +168,8 @@ class ProxyActionClient(object):
         @type topic: string
         @param topic: The topic of interest.
         """
-        return ProxyActionClient._clients[topic].simple_state != actionlib.SimpleGoalState.DONE
+        return ProxyActionClient._clients[topic].server_is_ready()
+        # return ProxyActionClient._clients[topic].simple_state != actionlib.SimpleGoalState.DONE
 
     def cancel(self, topic):
         """
@@ -185,7 +196,7 @@ class ProxyActionClient(object):
             return False
         t = Timer(.5, self._print_wait_warning, [topic])
         t.start()
-        available = client.wait_for_server(rospy.Duration.from_sec(wait_duration))
+        available = client.wait_for_server(Duration(seconds=wait_duration))
         warning_sent = False
         try:
             t.cancel()

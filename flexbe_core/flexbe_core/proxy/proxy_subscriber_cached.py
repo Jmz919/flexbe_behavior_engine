@@ -15,6 +15,7 @@ class ProxySubscriberCached(object):
 
     def _initialize(node):
         ProxySubscriberCached._node = node
+        Logger.initialize(node)
 
     def __init__(self, topics={}, qos=None):
         """
@@ -46,6 +47,9 @@ class ProxySubscriberCached(object):
             qos = qos or QOS_DEFAULT
             sub = ProxySubscriberCached._node.create_subscription(msg_type, topic,
                                                                   partial(self._callback, topic=topic), qos)
+
+            # sub = ProxySubscriberCached._node.create_subscription(msg_type, topic, self._callback, qos)
+
             ProxySubscriberCached._topics[topic] = {'subscriber': sub,
                                                     'last_msg': None,
                                                     'buffered': buffered,
@@ -64,6 +68,9 @@ class ProxySubscriberCached(object):
         @type topic: string
         @param topic: The topic to which this callback belongs.
         """
+        topic = '/pubsub_1'
+        lll
+
         if topic not in ProxySubscriberCached._topics:
             return
         ProxySubscriberCached._topics[topic]['last_msg'] = msg

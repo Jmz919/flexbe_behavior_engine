@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import rclpy
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
 
 from flexbe_core.core.state_machine import StateMachine
@@ -26,7 +27,7 @@ class RosStateMachine(StateMachine):
             RosStateMachine._node.create_rate(1 / seconds).sleep()
         if condition is not None:
             rate = RosStateMachine._node.create_rate(100)
-            while not rospy.is_shutdown():
+            while rclpy.ok():
                 if condition():
                     break
                 rate.sleep()
