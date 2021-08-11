@@ -13,6 +13,8 @@ class ProxyActionClient(object):
     """
     _node = None
     _clients = {}
+    _has_active_goal = {}
+    _cancel_current_goal = {}
 
     _result = {}
     _feedback = {}
@@ -50,15 +52,6 @@ class ProxyActionClient(object):
         @param wait_duration: Defines how long to wait for the given client if it is not available right now.
         """
         if topic not in ProxyActionClient._clients:
-            # topics = ProxyActionClient._node.get_service_names_and_types()
-            # found_server = False
-            # for i in range(len(topics)):
-            #     print(topics[i][0])
-            #     if topics[i][0] == topic:
-            #         found_service = True
-            #         break
-
-            # if found_server:
             ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
             self._check_topic_available(topic, wait_duration)
 
@@ -77,7 +70,9 @@ class ProxyActionClient(object):
         # reset previous results
         ProxyActionClient._result[topic] = None
         ProxyActionClient._feedback[topic] = None
-        ProxyActionClient._current_topic = topic
+        ProxyActionClient._cancel_current_goal[topic] = False
+        ProxyActionClient._has_active_goal[topic] = True
+
         # send goal
         ProxyActionClient._clients[topic].wait_for_server()
         future = ProxyActionClient._clients[topic].send_goal_async(
@@ -86,20 +81,22 @@ class ProxyActionClient(object):
         )
         future.add_done_callback(partial(self._done_callback, topic=topic))
 
-        # Logger.loginfo('Sending a goal')
-        # ProxyActionClient._clients[topic].wait_for_server()
-        # result = ProxyActionClient._clients[topic].send_goal(goal)
-        # Logger.loginfo('Got result')
-        # self._done_callback(topic, result)
-
     def _done_callback(self, future, topic):
-        result = future.result().get_result()
-        print("Got a result")
-        ProxyActionClient._result[ProxyActionClient._current_topic] = result
+        if ProxyActionClient._cancel_current_goal[topic]:
+            cancel = future.result().cancel_goal()
+            ProxyActionClient._result[topic] = cancel
+            ProxyActionClient._cancel_current_goal[topic] = False
+            ProxyActionClient._has_active_goal[topic] = False
+        else:
+            result = future.result().get_result_async()
+            result.add_done_callback(partial(self._result_callback, topic=topic))
 
+    def _result_callback(self, future, topic):
+        result = future.result().result
+        ProxyActionClient._result[topic] = result
+        ProxyActionClient._has_active_goal[topic] = False
 
     def _feedback_callback(self, topic, feedback):
-        print("Got feedback")
         ProxyActionClient._feedback[topic] = feedback
 
     def is_available(self, topic):
@@ -182,8 +179,7 @@ class ProxyActionClient(object):
         @type topic: string
         @param topic: The topic of interest.
         """
-        return ProxyActionClient._clients[topic].server_is_ready()
-        # return ProxyActionClient._clients[topic].simple_state != actionlib.SimpleGoalState.DONE
+        return ProxyActionClient._has_active_goal[topic]
 
     def cancel(self, topic):
         """
@@ -192,7 +188,7 @@ class ProxyActionClient(object):
         @type topic: string
         @param topic: The topic of interest.
         """
-        ProxyActionClient._clients[topic].cancel_goal()
+        ProxyActionClient._cancel_current_goal[topic] = True
 
     def _check_topic_available(self, topic, wait_duration=1):
         """
@@ -210,7 +206,8 @@ class ProxyActionClient(object):
             return False
         t = Timer(.5, self._print_wait_warning, [topic])
         t.start()
-        available = client.wait_for_server(Duration(seconds=wait_duration))
+        available = client.wait_for_server(wait_duration)
+
         warning_sent = False
         try:
             t.cancel()

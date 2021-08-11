@@ -119,27 +119,24 @@ class TestProxies(unittest.TestCase):
         t1 = '/service_1'
 
         def server_callback(request, response):
-            self.node.get_logger().info("Starting service callback")
             response.success = True
             response.message = "ok"
-
-            self.node.get_logger().info("Sent service message")
             return response
 
         self.node.create_service(Trigger, t1, server_callback)
 
         srv = ProxyServiceCaller({t1: Trigger})
 
-        result = srv.call(t1, Trigger.Request())
+        srv.call_async(t1, Trigger.Request())
         end_time = time.time() + 10
         while time.time() < end_time:
             rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
 
-        self.node.get_logger().info("Called service request")
+        self.assertTrue(srv.done(t1))
 
-        self.assertIsNotNone(result)
-        self.assertTrue(result.success)
-        self.assertEqual(result.message, 'ok')
+        self.assertIsNotNone(srv.result(t1))
+        self.assertTrue(srv.result(t1).success)
+        self.assertEqual(srv.result(t1).message, 'ok')
 
         self.assertFalse(srv.is_available('/not_there'))
         srv = ProxyServiceCaller({'/invalid': Trigger}, wait_duration=.1)
@@ -153,11 +150,13 @@ class TestProxies(unittest.TestCase):
         def execute_cb(goal_handle):
             time.sleep(0.1)
             if goal_handle.is_cancel_requested:
-                # server.set_preempted()
                 goal_handle.canceled()
+                return BehaviorExecution.Result()
             else:
                 goal_handle.succeed()
-                # server.set_succeeded(BehaviorExecution.Result(outcome='ok'))
+                result = BehaviorExecution.Result()
+                result.outcome = 'ok'
+                return result
 
         server = ActionServer(self.node, BehaviorExecution, t1, execute_cb)
 
@@ -165,13 +164,6 @@ class TestProxies(unittest.TestCase):
         client = ProxyActionClient({t1: BehaviorExecution})
         self.assertFalse(client.has_result(t1))
         client.send_goal(t1, BehaviorExecution.Goal())
-
-        # rate = self.node.create_rate(20, self.node.get_clock())
-        # for i in range(20):
-        #     rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
-        #     self.assertTrue(client.is_active(t1) or client.has_result(t1))
-        #     time.sleep(0.1)
-            # rate.sleep()
 
         end_time = time.time() + 10
         while time.time() < end_time:
@@ -184,13 +176,13 @@ class TestProxies(unittest.TestCase):
         self.assertEqual(result.outcome, 'ok')
 
         client.send_goal(t1, BehaviorExecution.Goal())
+        client.cancel(t1)
         end_time = time.time() + 10
         while time.time() < end_time:
             rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
             self.assertTrue(client.is_active(t1) or client.has_result(t1))
-            time.sleep(0.1)
 
-        client.cancel(t1)
+        # client.cancel(t1)
         time.sleep(0.3)
 
         self.assertFalse(client.is_active(t1))

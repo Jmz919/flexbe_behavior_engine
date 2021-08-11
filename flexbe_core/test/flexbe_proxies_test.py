@@ -23,8 +23,8 @@ def generate_test_description():
         cmd=[sys.executable, TEST_PROC_PATH],
         env=proc_env,
         output='screen',
-        sigterm_timeout=launch.substitutions.LaunchConfiguration('sigterm_timeout', default=30),
-        sigkill_timeout=launch.substitutions.LaunchConfiguration('sigkill_timeout', default=30)
+        sigterm_timeout=launch.substitutions.LaunchConfiguration('sigterm_timeout', default=90),
+        sigkill_timeout=launch.substitutions.LaunchConfiguration('sigkill_timeout', default=90)
     )
 
     return (
