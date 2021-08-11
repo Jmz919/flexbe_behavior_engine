@@ -22,12 +22,12 @@ class TestProxies(unittest.TestCase):
 
     @classmethod
     def tearDown(self):
-        # self.node.destroy_node()
-        # self.executor.shutdown()
+        self.node.destroy_node()
+        self.executor.shutdown()
         rclpy.shutdown(context=self.context)
 
     def test_publish_subscribe(self):
-        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=5)
+        rclpy.spin_once(self.node, executor=self.executor, timeout_sec=1)
         ProxyPublisher._initialize(self.node)
         ProxySubscriberCached._initialize(self.node)
 
@@ -40,20 +40,25 @@ class TestProxies(unittest.TestCase):
         self.assertTrue(pub.is_available(t1))
 
         self.assertTrue(pub.wait_for_any(t1))
-        # self.assertFalse(pub.wait_for_any(t2))
+        self.assertFalse(pub.wait_for_any(t2))
 
         msg1 = String()
         msg1.data = '1'
         msg2 = String()
         msg2.data = '2'
 
+        self.assertTrue(pub.is_available(t1))
+        self.assertTrue(pub.is_available(t2))
+
+        sub = ProxySubscriberCached({t2: String})
+
         pub.publish(t1, msg1)
         pub.publish(t2, msg2)
 
-        # time.sleep(0.5) # make sure latched message is sent before subscriber is added
-        # sub = ProxySubscriberCached({t2: String})
-        sub.subscribe(t2, String)
-        time.sleep(0.5) # make sure latched message can be received before checking
+        # Make sure messages are sent before checking subscription
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
 
         self.assertTrue(sub.has_msg(t1))
         self.assertEqual(sub.get_last_msg(t1).data, '1')
@@ -83,14 +88,24 @@ class TestProxies(unittest.TestCase):
 
         pub.publish(t1, msg1)
         pub.publish(t1, msg2)
-        time.sleep(0.5) # make sure messages can be received
+
+        # make sure messages can be received
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
 
         self.assertTrue(sub.has_msg(t1))
         self.assertTrue(sub.has_buffered(t1))
         self.assertEqual(sub.get_from_buffer(t1).data, '1')
 
-        pub.publish(t1, String('3'))
-        time.sleep(0.5) # make sure messages can be received
+        msg3 = String()
+        msg3.data = '3'
+        pub.publish(t1, msg3)
+
+        # make sure message can be received
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
 
         self.assertEqual(sub.get_from_buffer(t1).data, '2')
         self.assertEqual(sub.get_from_buffer(t1).data, '3')
@@ -116,6 +131,9 @@ class TestProxies(unittest.TestCase):
         srv = ProxyServiceCaller({t1: Trigger})
 
         result = srv.call(t1, Trigger.Request())
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
 
         self.node.get_logger().info("Called service request")
 
@@ -134,33 +152,43 @@ class TestProxies(unittest.TestCase):
 
         def execute_cb(goal_handle):
             time.sleep(0.1)
-            if server.is_cancel_requested:
+            if goal_handle.is_cancel_requested:
                 # server.set_preempted()
                 goal_handle.canceled()
             else:
                 goal_handle.succeed()
                 # server.set_succeeded(BehaviorExecution.Result(outcome='ok'))
 
-        # server = actionlib.SimpleActionServer(t1, BehaviorExecution, execute_cb, auto_start=False)
         server = ActionServer(self.node, BehaviorExecution, t1, execute_cb)
-        # server.start()
 
         ProxyActionClient._initialize(self.node)
         client = ProxyActionClient({t1: BehaviorExecution})
         self.assertFalse(client.has_result(t1))
         client.send_goal(t1, BehaviorExecution.Goal())
 
-        rate = self.node.create_rate(20, self.node.get_clock())
-        for i in range(20):
-            self.assertTrue(client.is_active(t1) or client.has_result(t1))
+        # rate = self.node.create_rate(20, self.node.get_clock())
+        # for i in range(20):
+        #     rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
+        #     self.assertTrue(client.is_active(t1) or client.has_result(t1))
+        #     time.sleep(0.1)
             # rate.sleep()
+
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
+            self.assertTrue(client.is_active(t1) or client.has_result(t1))
+
         self.assertTrue(client.has_result(t1))
 
         result = client.get_result(t1)
         self.assertEqual(result.outcome, 'ok')
 
         client.send_goal(t1, BehaviorExecution.Goal())
-        time.sleep(0.1)
+        end_time = time.time() + 10
+        while time.time() < end_time:
+            rclpy.spin_once(self.node, executor=self.executor, timeout_sec=0.1)
+            self.assertTrue(client.is_active(t1) or client.has_result(t1))
+            time.sleep(0.1)
 
         client.cancel(t1)
         time.sleep(0.3)
@@ -173,7 +201,4 @@ class TestProxies(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    # rospy.init_node('test_flexbe_proxies')
-    # import rostest
-    # rostest.rosrun('flexbe_core', 'test_flexbe_proxies', TestProxies)
     unittest.main()

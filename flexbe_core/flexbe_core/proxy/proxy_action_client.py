@@ -50,16 +50,17 @@ class ProxyActionClient(object):
         @param wait_duration: Defines how long to wait for the given client if it is not available right now.
         """
         if topic not in ProxyActionClient._clients:
-            topics = ProxyActionClient._node.get_topic_names_and_types()
-            found_server = False
-            for i in range(len(topics)):
-                if topics[i][0] == topic:
-                    found_service = True
-                    break
+            # topics = ProxyActionClient._node.get_service_names_and_types()
+            # found_server = False
+            # for i in range(len(topics)):
+            #     print(topics[i][0])
+            #     if topics[i][0] == topic:
+            #         found_service = True
+            #         break
 
-            if found_server:
-                ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
-                self._check_topic_available(topic, wait_duration)
+            # if found_server:
+            ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
+            self._check_topic_available(topic, wait_duration)
 
     def send_goal(self, topic, goal):
         """
@@ -78,22 +79,27 @@ class ProxyActionClient(object):
         ProxyActionClient._feedback[topic] = None
         ProxyActionClient._current_topic = topic
         # send goal
+        ProxyActionClient._clients[topic].wait_for_server()
         future = ProxyActionClient._clients[topic].send_goal_async(
             goal,
             feedback_callback=lambda f: self._feedback_callback(topic, f)
         )
-
-        # Logger.loginfo('Sending a goal')
-        # result = ProxyActionClient._clients[topic].send_goal(goal)
-        # Logger.loginfo('Got goal')
-        # self._done_callback(topic, result)
-
         future.add_done_callback(partial(self._done_callback, topic=topic))
 
-    def _done_callback(self, topic, result):
+        # Logger.loginfo('Sending a goal')
+        # ProxyActionClient._clients[topic].wait_for_server()
+        # result = ProxyActionClient._clients[topic].send_goal(goal)
+        # Logger.loginfo('Got result')
+        # self._done_callback(topic, result)
+
+    def _done_callback(self, future, topic):
+        result = future.result().get_result()
+        print("Got a result")
         ProxyActionClient._result[ProxyActionClient._current_topic] = result
 
+
     def _feedback_callback(self, topic, feedback):
+        print("Got feedback")
         ProxyActionClient._feedback[topic] = feedback
 
     def is_available(self, topic):
