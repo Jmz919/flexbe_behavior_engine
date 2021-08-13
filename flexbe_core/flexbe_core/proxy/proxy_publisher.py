@@ -118,19 +118,10 @@ class ProxyPublisher(object):
         starting_time = ProxyPublisher._node.get_clock().now()
         rate = ProxyPublisher._node.create_rate(100, ProxyPublisher._node.get_clock())
 
-        while (ProxyPublisher._node.get_clock().now() - starting_time).nanoseconds / 1e9 < timeout:
+        while (ProxyPublisher._node.get_clock().now() - starting_time).nanoseconds * 10 ** -9 < timeout:
             if pub.get_subscription_count() > 0:
                 return True
             # rate.sleep()
             time.sleep(0.1)
 
         return False
-
-        # while rclpy.ok():
-        #     elapsed = ProxyPublisher._node.get_clock().now() - starting_time
-        #     if elapsed.to_sec() >= timeout:
-        #         return False
-        #     if pub.get_subscription_count() >= 1:
-        #         return True
-        #     rate.sleep()
-        # return False

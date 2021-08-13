@@ -18,8 +18,6 @@ class TestProxies(unittest.TestCase):
         self.executor = MultiThreadedExecutor(context=self.context)
         self.node = rclpy.create_node('TestProxies', context=self.context)
 
-        # rclpy.spin(self.node, self.executor)
-
     @classmethod
     def tearDown(self):
         self.node.destroy_node()

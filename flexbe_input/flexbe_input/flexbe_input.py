@@ -5,8 +5,6 @@ import pickle
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
-import actionlib
-import threading
 
 from flexbe_msgs.msg import BehaviorInputAction, BehaviorInputFeedback, BehaviorInputResult, BehaviorInputGoal
 from flexbe_core import Logger

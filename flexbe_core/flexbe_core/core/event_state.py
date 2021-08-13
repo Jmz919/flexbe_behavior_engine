@@ -23,7 +23,7 @@ class EventState(OperatableState):
     def __init__(self, *args, **kwargs):
         super(EventState, self).__init__(*args, **kwargs)
         Logger.initialize(EventState._node)
-        StateLogger.initialize_ros(EventState._node)
+        # StateLogger.initialize_ros(EventState._node)
 
         self.__execute = self.execute
         self.execute = self._event_execute
@@ -78,6 +78,7 @@ class EventState(OperatableState):
         if repeat or outcome is not None and not PreemptableState.preempt:
             self._entering = True
             self.on_exit(*args, **kwargs)
+
         return outcome
 
     def _notify_skipped(self):

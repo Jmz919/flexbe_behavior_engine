@@ -2,6 +2,7 @@
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
 
 from flexbe_core.core.state import State
+from flexbe_core.state_logger import StateLogger
 
 
 class RosState(State):
@@ -17,6 +18,7 @@ class RosState(State):
         RosState._breakpoints = node.declare_parameter('breakpoints', [])
         ProxyPublisher._initialize(RosState._node)
         ProxySubscriberCached._initialize(RosState._node)
+        StateLogger.initialize_ros(RosState._node)
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
@@ -31,7 +33,7 @@ class RosState(State):
 
     @property
     def sleep_duration(self):
-        return self._rate._time.time_until_next_call()
+        return self._rate._timer.timer_period_ns
 
     def set_rate(self, rate):
         """
@@ -43,6 +45,7 @@ class RosState(State):
         @type label: float
         @param label: The desired rate in Hz.
         """
+        self._rate.destroy()
         self._rate = RosState._node.create_rate(rate)
 
     def _enable_ros_control(self):

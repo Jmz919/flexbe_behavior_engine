@@ -1,3 +1,6 @@
 #!/usr/bin/env python
+from .flexbe_onboard import FlexbeOnboard
 
-import roslib; roslib.load_manifest('flexbe_onboard')
+__all__ = [
+    'FlexbeOnboard'
+]

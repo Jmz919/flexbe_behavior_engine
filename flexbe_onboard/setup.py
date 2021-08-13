@@ -1,13 +1,13 @@
 import os
 from glob import glob
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'flexbe_onboard'
 
 setup(
     name=package_name,
     version='1.3.1',
-    packages=[package_name],
+    packages=find_packages(exclude=['test']),
     data_files=[
         (os.path.join('share', package_name), glob('launch/*.launch.py')),
         ('share/ament_index/resource_index/packages',

@@ -14,8 +14,12 @@ from std_msgs.msg import Empty, String, Int32, UInt8
 
 class FlexbeMirror(object):
 
-    def __init__(self):
+    def __init__(self, node):
         self._sm = None
+        self._node = node
+        ProxyPublisher._initialize_ros(self._node)
+        ProxySubscriberCached._initialize_ros(self._node)
+        Logger.initialize(self._node)
 
         # set up proxys for sm <--> GUI communication
         # publish topics
@@ -43,7 +47,7 @@ class FlexbeMirror(object):
         self._sub.subscribe('flexbe/mirror/preempt', Empty, self._preempt_callback)
 
     def _mirror_callback(self, msg):
-        rate = rclpy.Rate(10)
+        rate = self._node.create_rate(10, self._node.get_clock())
         while self._stopping:
             rate.sleep()
 
@@ -78,7 +82,7 @@ class FlexbeMirror(object):
 
     def _start_mirror(self, msg):
         with self._sync_lock:
-            rate = rclpy.Rate(10)
+            rate = self._node.create_rate(10, self._node.get_clock())
             while self._stopping:
                 rate.sleep()
 
@@ -128,7 +132,7 @@ class FlexbeMirror(object):
                     self._pub.publish('flexbe/behavior_update', String())
 
                 PreemptableState.preempt = True
-                rate = rclpy.Rate(10)
+                rate = self._node.create_rate(10, self._node.get_clock())
                 while self._running:
                     rate.sleep()
             else:
@@ -161,7 +165,7 @@ class FlexbeMirror(object):
             self._sub.remove_last_msg(self._outcome_topic, clear_buffer=True)
             if self._sm is not None and self._running:
                 PreemptableState.preempt = True
-                rate = rclpy.Rate(10)
+                rate = self._node.create_rate(10, self._node.get_clock())
                 while self._running:
                     rate.sleep()
                 self._sm = None

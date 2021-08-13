@@ -26,6 +26,10 @@ class FlexbeOnboard(object):
 
     def __init__(self, node):
         self._node = node
+        ProxyPublisher._initialize(self._node)
+        ProxySubscriberCached._initialize(self._node)
+        Logger.initialize(self._node)
+
         self.be = None
         self._tracked_imports = list()
         # prepare temp folder
@@ -51,7 +55,7 @@ class FlexbeOnboard(object):
         try:
             self._enable_clear_impots = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
         except ParameterNotDeclaredException as e:
-            self.declare_parameter('~enable_clear_imports', False)
+            self._node.declare_parameter('~enable_clear_imports', False)
             self._enable_clear_impots = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
 
         self._running = False
@@ -106,7 +110,7 @@ class FlexbeOnboard(object):
                     self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['not_switchable']))
                     return
                 # wait if running behavior is currently starting or stopping
-                rate = rclpy.Rate(100)
+                rate = self._node.create_rate(100, self._node.get_clock())
                 while rclpy.ok():
                     active_state = self.be.get_current_state()
                     if active_state is not None or not self._running:

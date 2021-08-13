@@ -71,7 +71,7 @@ class ProxySubscriberCached(object):
         ProxySubscriberCached._topics[topic]['last_msg'] = msg
         if ProxySubscriberCached._topics[topic]['buffered']:
             ProxySubscriberCached._topics[topic]['msg_queue'].append(msg)
-        for callback in ProxySubscriberCached._topics[topic]['callbacks']:
+        for callback in ProxySubscriberCached._topics[topic]['callbacks'][topic]:
             callback(msg)
 
     def set_callback(self, topic, callback):
