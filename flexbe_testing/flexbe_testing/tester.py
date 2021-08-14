@@ -13,8 +13,10 @@ from .data_provider import DataProvider
 
 class Tester(object):
 
-    def __init__(self):
+    def __init__(self, node):
         self._tests = dict()
+        self.node = node
+        Logger.initialize(node)
 
     def run_test(self, name, config):
         try:
@@ -36,7 +38,7 @@ class Tester(object):
 
         # import test subject
         try:
-            test_interface = TestInterface(config['path'], config['class'])
+            test_interface = TestInterface(self.node, config['path'], config['class'])
         except Exception as e:
             Logger.print_failure('unable to import state %s (%s):\n\t%s' %
                                  (config['class'], config['path'], str(e)))
@@ -47,13 +49,13 @@ class Tester(object):
             # prepare test context
             context = None
             if 'launch' in config:
-                context = LaunchContext(config['launch'], config.get('wait_cond', 'True'))
+                context = LaunchContext(self.node, config['launch'], config.get('wait_cond', 'True'))
             else:
                 context = TestContext()
 
             # load data source
             try:
-                data = DataProvider(bagfile=config.get('data', None))
+                data = DataProvider(self.node, bagfile=config.get('data', None))
             except Exception as e:
                 Logger.print_failure('unable to load data source %s:\n\t%s' %
                                      (config['data'], str(e)))
@@ -140,9 +142,9 @@ class Tester(object):
 
     # ROSUNIT interface
 
-    def perform_rostest(self, test_pkg):
-        TestCase = type(test_pkg + '_test_class', (unittest.TestCase,), self._tests)
-        rosunit.unitrun(test_pkg, test_pkg + '_flexbe_tests', TestCase)
+    # def perform_rostest(self, test_pkg):
+    #     TestCase = type(test_pkg + '_test_class', (unittest.TestCase,), self._tests)
+    #     rosunit.unitrun(test_pkg, test_pkg + '_flexbe_tests', TestCase)
 
     def _test_output(self, value, expected):
         def _test_call(test_self):

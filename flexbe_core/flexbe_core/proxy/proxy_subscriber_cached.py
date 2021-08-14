@@ -202,7 +202,8 @@ class ProxySubscriberCached(object):
         @param topic: The topic of interest.
         """
         if topic in ProxySubscriberCached._topics:
-            ProxySubscriberCached._topics[topic]['subscriber'].unregister()
+            # ProxySubscriberCached._topics[topic]['subscriber'].unregister()
+            ProxySubscriberCached._topics[topic]['subscriber'].destroy()
             ProxySubscriberCached._topics.pop(topic)
 
     def shutdown(self):
@@ -210,7 +211,8 @@ class ProxySubscriberCached(object):
         try:
             for topic in ProxySubscriberCached._topics:
                 try:
-                    ProxySubscriberCached._topics[topic]['subscriber'].unregister()
+                    # ProxySubscriberCached._topics[topic]['subscriber'].unregister()
+                    ProxySubscriberCached._topics[topic]['subscriber'].destroy()
                 except Exception as e:
                     rospy.logerr('Something went wrong during shutdown of proxy subscriber!\n%s', str(e))
         except Exception as e:

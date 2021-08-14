@@ -53,10 +53,10 @@ class FlexbeOnboard(object):
         # listen for new behavior to start
         # self._enable_clear_imports = rospy.get_param('~enable_clear_imports', False)
         try:
-            self._enable_clear_impots = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
+            self._enable_clear_imports = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
         except ParameterNotDeclaredException as e:
             self._node.declare_parameter('~enable_clear_imports', False)
-            self._enable_clear_impots = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
+            self._enable_clear_imports = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
 
         self._running = False
         self._run_lock = threading.Lock()
@@ -139,7 +139,7 @@ class FlexbeOnboard(object):
             result = None
             try:
                 self._node.get_logger().info('Behavior ready, execution starts now.')
-                self._node.get_logger().info('[%s : %s]', be.name, msg.behavior_checksum)
+                self._node.get_logger().info('[%s : %s]' % (be.name, msg.behavior_checksum))
                 self.be.confirm()
                 args = [self.be.requested_state_path] if self.be.requested_state_path is not None else []
                 self._pub.publish(self.status_topic,
@@ -238,7 +238,7 @@ class FlexbeOnboard(object):
                 clsmembers = inspect.getmembers(package, lambda member: (inspect.isclass(member) and
                                                                          member.__module__ == package.__name__))
                 beclass = clsmembers[0][1]
-                be = beclass()
+                be = beclass(self._node)
             self._node.get_logger().info('Behavior ' + be.name + ' created.')
         except Exception as e:
             Logger.logerr('Exception caught in behavior definition:\n%s\n'

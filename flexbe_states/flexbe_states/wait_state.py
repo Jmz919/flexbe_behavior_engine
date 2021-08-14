@@ -17,10 +17,11 @@ class WaitState(EventState):
         self._wait = wait_time
 
     def execute(self, userdata):
-        elapsed = rclpy.Time.now() - self._start_time
-        if elapsed.to_sec() > self._wait:
+
+        elapsed = WaitState._node.get_clock().now() - self._start_time
+        if elapsed.nanoseconds * 10 ** -9 > self._wait:
             return 'done'
 
     def on_enter(self, userdata):
         '''Upon entering the state, save the current time and start waiting.'''
-        self._start_time = rclpy.Time.now()
+        self._start_time = WaitState._node.get_clock().now()

@@ -8,6 +8,7 @@ import logging.config
 from functools import wraps, partial
 from flexbe_core.proxy import ProxyPublisher
 from std_msgs.msg import String
+from rclpy.exceptions import ParameterNotDeclaredException
 
 
 class StateLogger(object):
@@ -28,11 +29,30 @@ class StateLogger(object):
     @staticmethod
     def initialize_ros(node):
         StateLogger._node = node
-        StateLogger._log_folder = node.declare_parameter('log_folder', '~/.flexbe_logs')
-        StateLogger._log_enabled = node.declare_parameter('log_enabled', False)
-        StateLogger._log_serialize = node.declare_parameter('log_serialize', 'yaml')
-        StateLogger._log_level = node.declare_parameter('log_level', 'INFO')
-        StateLogger._log_config = node.declare_parameter('log_config', '')
+        try:
+            StateLogger._log_folder = node.get_parameter('log_folder')
+        except ParameterNotDeclaredException as e:
+            StateLogger._log_folder = node.declare_parameter('log_folder', '~/.flexbe_logs')
+
+        try:
+            StateLogger._log_enabled = node.get_parameter('log_enabled')
+        except ParameterNotDeclaredException as e:
+            StateLogger._log_enabled = node.declare_parameter('log_enabled', False)
+
+        try:
+            StateLogger._log_serialize = node.get_parameter('log_serialize')
+        except ParameterNotDeclaredException as e:
+            StateLogger._log_serialize = node.declare_parameter('log_serialize', 'yaml')
+
+        try:
+            StateLogger._log_level = node.get_parameter('log_level')
+        except ParameterNotDeclaredException as e:
+            StateLogger._log_level = node.declare_parameter('log_level', 'INFO')
+
+        try:
+            StateLogger._log_config = node.get_parameter('log_config')
+        except ParameterNotDeclaredException as e:
+            StateLogger._log_config = node.declare_parameter('log_config', '')
 
     @staticmethod
     def initialize(be_name=None):

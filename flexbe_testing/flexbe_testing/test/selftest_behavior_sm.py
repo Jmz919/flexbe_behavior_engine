@@ -26,9 +26,13 @@ class SelftestBehaviorSM(Behavior):
 	'''
 
 
-	def __init__(self):
+	def __init__(self, node):
 		super(SelftestBehaviorSM, self).__init__()
 		self.name = 'Selftest Behavior'
+		self.node = node
+		OperatableStateMachine.initialize_ros(self.node)
+		CalculationState.initialize_ros(self.node)
+		DecisionState.initialize_ros(self.node)
 
 		# parameters of this behavior
 		self.add_parameter('value', 'wrong')
@@ -37,7 +41,7 @@ class SelftestBehaviorSM(Behavior):
 
 		# Additional initialization code can be added inside the following tags
 		# [MANUAL_INIT]
-		
+
 		# [/MANUAL_INIT]
 
 		# Behavior comments:
@@ -52,7 +56,7 @@ class SelftestBehaviorSM(Behavior):
 
 		# Additional creation code can be added inside the following tags
 		# [MANUAL_CREATE]
-		
+
 		# [/MANUAL_CREATE]
 
 
@@ -77,5 +81,5 @@ class SelftestBehaviorSM(Behavior):
 
 	# Private functions can be added inside the following tags
 	# [MANUAL_FUNC]
-	
+
 	# [/MANUAL_FUNC]

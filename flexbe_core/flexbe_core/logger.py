@@ -45,7 +45,7 @@ class Logger(object):
         elif severity == Logger.REPORT_WARN:
             Logger._node.get_logger().warning(text)
         elif severity == Logger.REPORT_HINT:
-            Logger._node.get_logger().info('\033[94mBehavior Hint: %s\033[0m', text)
+            Logger._node.get_logger().info('\033[94mBehavior Hint: %s\033[0m' % text)
         elif severity == Logger.REPORT_ERROR:
             Logger._node.get_logger().error(text)
         elif severity == Logger.REPORT_DEBUG:

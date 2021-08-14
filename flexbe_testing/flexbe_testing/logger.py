@@ -6,36 +6,42 @@ from rclpy.node import Node
 class Logger(object):
     """ Bundles static methods for test case logging. """
 
+    _node = None
+
+    @staticmethod
+    def initialize(node: Node):
+        Logger._node = node
+
     @classmethod
-    def _param_positive(cls, node):
+    def _param_positive(cls):
         print_debug_positive = False
         try:
-            print_debug_positive = node.get_parameter('~print_debug_positive').get_parameter_value()
+            print_debug_positive = Logger._node.get_parameter('~print_debug_positive').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~print_debug_positive', True)
-            print_debug_positive = node.get_parameter('~print_debug_positive').get_parameter_value()
+            Logger._node.declare_parameter('~print_debug_positive', True)
+            print_debug_positive = Logger._node.get_parameter('~print_debug_positive').get_parameter_value()
 
         return not cls._param_compact() and print_debug_positive
 
     @classmethod
-    def _param_negative(cls, node):
+    def _param_negative(cls):
         print_debug_negative = False
         try:
-            print_debug_negative = node.get_parameter('~print_debug_negative').get_parameter_value()
+            print_debug_negative = Logger._node.get_parameter('~print_debug_negative').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~print_debug_negative', True)
-            print_debug_positive = node.get_parameter('~print_debug_negative').get_parameter_value()
+            Logger._node.declare_parameter('~print_debug_negative', True)
+            print_debug_positive = Logger._node.get_parameter('~print_debug_negative').get_parameter_value()
 
         return cls._param_compact() or print_debug_negative
 
     @classmethod
-    def _param_compact(cls, node):
+    def _param_compact(cls:
         compact_format = False
         try:
-            compact_format = node.get_parameter('~compact_format').get_parameter_value()
+            compact_format = Logger._node.get_parameter('~compact_format').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~compact_format', False)
-            compact_format = node.get_parameter('~compact_format').get_parameter_value()
+            Logger._node.declare_parameter('~compact_format', False)
+            compact_format = Logger._node.get_parameter('~compact_format').get_parameter_value()
 
         return compact_format
 
@@ -50,36 +56,36 @@ class Logger(object):
     _counter_value = 0
 
     @classmethod
-    def mute_rclpy(cls, node):
+    def mute_rclpy(cls):
         """ Conditionally mute the rclpy logging channels. """
         mute_info = False
         mute_warn = False
         mute_error = False
 
         try:
-            mute_info = node.get_parameter('~mute_info').get_parameter_value()
+            mute_info = Logger._node.get_parameter('~mute_info').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~mute_info', False)
-            mute_info = node.get_parameter('~mute_info').get_parameter_value()
+            Logger._node.declare_parameter('~mute_info', False)
+            mute_info = Logger._node.get_parameter('~mute_info').get_parameter_value()
 
         try:
-            mute_warn = node.get_parameter('~mute_warn').get_parameter_value()
+            mute_warn = Logger._node.get_parameter('~mute_warn').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~mute_warn', False)
-            mute_warn = node.get_parameter('~mute_warn').get_parameter_value()
+            Logger._node.declare_parameter('~mute_warn', False)
+            mute_warn = Logger._node.get_parameter('~mute_warn').get_parameter_value()
 
         try:
-            mute_error = node.get_parameter('~mute_error').get_parameter_value()
+            mute_error = Logger._node.get_parameter('~mute_error').get_parameter_value()
         except Exception as e:
-            node.declare_parameter('~mute_error', False)
-            mute_error = node.get_parameter('~mute_error').get_parameter_value()
+            Logger._node.declare_parameter('~mute_error', False)
+            mute_error = Logger._node.get_parameter('~mute_error').get_parameter_value()
 
         if cls._param_compact() or mute_info:
-            node.get_logger().info = node.get_logger().debug
+            Logger._node.get_logger().info = Logger._node.get_logger().debug
         if cls._param_compact() or mute_warn:
-            node.get_logger().warn = node.get_logger().debug
+            Logger._node.get_logger().warn = Logger._node.get_logger().debug
         if not cls._param_compact() and mute_error:
-            node.get_logger().error = node.get_logger().debug
+            Logger._node.get_logger().error = Logger._node.get_logger().debug
 
     @classmethod
     def print_positive(cls, text):

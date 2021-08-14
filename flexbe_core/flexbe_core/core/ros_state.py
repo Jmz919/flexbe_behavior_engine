@@ -1,7 +1,9 @@
 #!/usr/bin/env python
+from rclpy.exceptions import ParameterNotDeclaredException
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
 
 from flexbe_core.core.state import State
+from flexbe_core.logger import Logger
 from flexbe_core.state_logger import StateLogger
 
 
@@ -15,10 +17,15 @@ class RosState(State):
     @staticmethod
     def initialize_ros(node):
         RosState._node = node
-        RosState._breakpoints = node.declare_parameter('breakpoints', [])
+        try:
+            RosState._breakpoints = node.get_parameter('breakpoints').get_parameter_value()
+        except ParameterNotDeclaredException as e:
+            RosState._breakpoints = node.declare_parameter('breakpoints', [])
+        # RosState._breakpoints = node.declare_parameter('breakpoints', [])
         ProxyPublisher._initialize(RosState._node)
         ProxySubscriberCached._initialize(RosState._node)
         StateLogger.initialize_ros(RosState._node)
+        Logger.initialize(RosState._node)
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)

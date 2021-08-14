@@ -4,6 +4,7 @@ import os
 # import rosbag
 from ament_index_python.packages import get_package_share_directory
 import rosbag2
+from pathlib import Path
 
 from .logger import Logger
 
@@ -11,7 +12,9 @@ from .logger import Logger
 class DataProvider(object):
     """ Provides an interface for required test case data. """
 
-    def __init__(self, bagfile=None):
+    def __init__(self, node, bagfile=None):
+        self.node = node
+        Logger.initialize(node)
         self._bag = None
 
         if bagfile is not None:
@@ -25,7 +28,13 @@ class DataProvider(object):
                 # pkgpath = rp.get_path(bagfile.split('/')[0])
                 pkgpath = get_package_share_directory(bagfile.split('/')[0])
                 bagpath = os.path.join(pkgpath, '/'.join(bagfile.split('/')[1:]))
-            self._bag = rosbag.Bag(bagpath)
+
+            storage_options, converter_options = get_rosbag_options(bagpath)
+
+            self._bag = rosbag2_py.SequentialReader()
+            self._bag.open(storage_options, converter_options)
+
+            # self._bag = rosbag.Bag(bagpath)
             Logger.print_positive('using data source: %s' % bagpath)
 
     def parse(self, value):
@@ -36,9 +45,11 @@ class DataProvider(object):
             if (isinstance(value, str) and len(value) > 1 and value[0] == '/' and value[1] != '/' and
                     self._bag is not None):
                 try:
-                    (_, result, _) = list(self._bag.read_messages(topics=[value]))[0]
-                except IndexError:
-                    (_, result, _) = list(self._bag.read_messages(topics=[value[1:]]))[0]
+                    (_, result, _) = self._bag.read_next()
+                    # (_, result, _) = list(self._bag.read_messages(topics=[value]))[0]
+                except Exception as e:
+                    Logger.print_error('Error parsing %s' % (str(e)))
+                    # (_, result, _) = list(self._bag.read_messages(topics=[value[1:]]))[0]
             # anonymous function
             elif isinstance(value, str) and value.startswith('lambda '):
                 result = eval(value)

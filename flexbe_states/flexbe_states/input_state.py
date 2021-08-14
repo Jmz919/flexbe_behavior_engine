@@ -29,6 +29,7 @@ class InputState(EventState):
         super(InputState, self).__init__(outcomes=['received', 'aborted', 'no_connection', 'data_error'],
                                          output_keys=['data'])
         self._action_topic = 'flexbe/behavior_input'
+        ProxyActionClient._initialize(InputState._node)
         self._client = ProxyActionClient({self._action_topic: BehaviorInputAction})
 
         self._request = request

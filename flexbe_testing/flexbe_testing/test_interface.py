@@ -9,13 +9,15 @@ from .logger import Logger
 class TestInterface(object):
     """ Interface to states and behaviors that are subject to testing. """
 
-    def __init__(self, path, classname):
+    def __init__(self, node, path, classname):
         package = __import__(path, fromlist=[path])
         clsmembers = inspect.getmembers(package, lambda member: (
             inspect.isclass(member) and member.__module__ == package.__name__
         ))
         self._class = next(c for name, c in clsmembers if name == classname)
         self._instance = None
+        self.node = node
+        Logger.initialize(node)
         Logger.print_positive('%s imported' % self.get_base_name())
 
     def is_state(self):

@@ -14,11 +14,11 @@ class TestSubState(EventState):
 		self._topic = topic
 		self._sub = ProxySubscriberCached({self._topic: String})
 		self._msg_counter = 0
-		self._timeout = rclpy.Time.now() + rclpy.Duration(1.5)
+		self._timeout = TestSubState._node.get_clock().now() + rclpy.Duration(1.5)
 
 
 	def execute(self, userdata):
-		if self._msg_counter == 0 and rclpy.Time.now() > self._timeout:
+		if self._msg_counter == 0 and TestSubState._node.get_clock().now() > self._timeout:
 			userdata.output_value = None
 			return 'unavailable'
 

@@ -55,6 +55,7 @@ class LaunchContext(TestContext):
 
     def __init__(self, node, launch_config, wait_cond="True"):
         self._node = node
+        Logger.initialize(node)
 
         try:
             self._run_id = self._node.get_parameter('/run_id').get_parameter_value()
@@ -104,7 +105,7 @@ class LaunchContext(TestContext):
         self._launched_proc_names = [p.name for p in self._launchrunner.pm.procs]
 
         try:
-            check_running_rate = rclpy.Rate(10)
+            check_running_rate = self._node.create_rate(10, self._node.get_clock())
             is_running = False
             while not is_running:
                 is_running = eval(self._wait_cond)
@@ -121,7 +122,7 @@ class LaunchContext(TestContext):
         self._launchrunner.spin_once()
 
     def wait_for_finishing(self):
-        check_exited_rate = rclpy.Rate(10)
+        check_exited_rate = self._node.create_rate(10, self._node.get_clock())
         self._node.get_logger().info("Waiting for all launched nodes to exit")
         while not all(name in self._exit_codes for name in self._launched_proc_names):
             check_exited_rate.sleep()
