@@ -7,7 +7,7 @@ package_name = 'flexbe_onboard'
 setup(
     name=package_name,
     version='1.3.1',
-    packages=find_packages(exclude=['test']),
+    packages=find_packages(),
     data_files=[
         (os.path.join('share', package_name), glob('launch/*.launch.py')),
         ('share/ament_index/resource_index/packages',

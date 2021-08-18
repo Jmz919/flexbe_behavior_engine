@@ -39,9 +39,6 @@ from flexbe_core import Logger
 
 import six
 
-import actionlib_msgs
-from actionlib.server_goal_handle import ServerGoalHandle;
-
 def nop_cb(goal_handle):
     pass
 
@@ -88,9 +85,8 @@ class ComplexActionServer(object):
 
 
         #create the action server
-        # self.action_server = ActionServer(name, ActionSpec, self.internal_goal_callback,self.internal_preempt_callback,auto_start);
-        self.action_server = ActionServer(node, ActionSpec, name, self.internal_goal_callback);
-
+        self.action_server = ActionServer(node, ActionSpec, name, goal_callback=self.internal_goal_callback,
+                                          cancel_callback=self.internal_preempt_callback);
 
 
     def __del__(self):
@@ -105,20 +101,20 @@ class ComplexActionServer(object):
     ## @brief Accepts a new goal when one is available The status of this
     ## goal is set to active upon acceptance,
     def accept_new_goal(self):
-        with self.action_server.lock, self.lock:
+        # with self.action_server.lock, self.lock:
 
-            Logger.logdebug("Accepting a new goal")
+        Logger.logdebug("Accepting a new goal")
 
-            self.goals_received_ -= 1;
+        self.goals_received_ -= 1;
 
-			#get from queue
-            current_goal = self.goal_queue_.get()
+		#get from queue
+        current_goal = self.goal_queue_.get()
 
-            #set the status of the current goal to be active
-            # current_goal.set_accepted("This goal has been accepted by the simple action server");
-            current_goal.succeed()
+        #set the status of the current goal to be active
+        # current_goal.set_accepted("This goal has been accepted by the simple action server");
+        current_goal.succeed()
 
-            return current_goal;
+        return current_goal;
 
 
     ## @brief Allows  polling implementations to query about the availability of a new goal
@@ -133,27 +129,32 @@ class ComplexActionServer(object):
        if self.current_goal and not self.current_goal.get_goal():
            return False;
 
-       status = self.current_goal.get_goal_status().status;
-       return status == actionlib_msgs.msg.GoalStatus.ACTIVE #or status == actionlib_msgs.msg.GoalStatus.PREEMPTING;
+       return self.current_goal.is_active
+       # status = self.current_goal.get_goal_status().status;
+       # return status == actionlib_msgs.msg.GoalStatus.ACTIVE #or status == actionlib_msgs.msg.GoalStatus.PREEMPTING;
 
 
     ## @brief Sets the status of the active goal to succeeded
     ## @param  result An optional result to send back to any clients of the goal
     def set_succeeded(self,result=None, text="", goal_handle=None):
-      with self.action_server.lock, self.lock:
-          if not result:
-              result=self.get_default_result();
-          # goal_handle.set_succeeded(result,text)
-          goal_handle.succeed()
+      # with self.action_server.lock, self.lock:
+      goal_handle.succeed()
+      if not result:
+          result=self.get_default_result();
+
+      return result
 
     ## @brief Sets the status of the active goal to aborted
     ## @param  result An optional result to send back to any clients of the goal
     def set_aborted(self, result = None, text="" , goal_handle=None):
-        with self.action_server.lock, self.lock:
-            if not result:
-                result=self.get_default_result();
-            # goal_handle.set_aborted(result,text)
-            goal_handle.abort()
+        # with self.action_server.lock, self.lock:
+        goal_handle.abort()
+        if not result:
+            result=self.get_default_result();
+
+        return result
+
+
 
     ## @brief Publishes feedback for a given goal
     ## @param  feedback Shared pointer to the feedback to publish
@@ -162,7 +163,6 @@ class ComplexActionServer(object):
 
 
     def get_default_result(self):
-        # return self.action_server.ActionResultType();
         return self.action_server.action_type
 
     ## @brief Allows users to register a callback to be invoked when a new goal is available
@@ -240,8 +240,6 @@ class ComplexActionServer(object):
 
               with self.execute_condition:
                   self.execute_condition.wait(loop_duration.to_sec());
-
-
 
 
     def run_goal(self,goal, goal_handle):

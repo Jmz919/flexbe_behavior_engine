@@ -21,6 +21,11 @@ class FlexbeMirror(object):
         ProxySubscriberCached._initialize_ros(self._node)
         Logger.initialize(self._node)
 
+        MirrorState.initialize_ros(self._node)
+        PreemptableState.initialize_ros(self._node)
+        PreemptableStateMachine.initialize_ros(self._node)
+        LockableStateMachine.initialize_ros(self._node)
+
         # set up proxys for sm <--> GUI communication
         # publish topics
         self._pub = ProxyPublisher({'flexbe/behavior_update': String,

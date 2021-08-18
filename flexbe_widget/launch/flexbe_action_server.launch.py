@@ -25,7 +25,7 @@ def generate_launch_description():
                 'log_enabled': LaunchConfiguration("log_enabled"),
                 'log_folder': LaunchConfiguration("log_folder")
             }.items()
-        )
+        ),
         Node(package="flexbe_mirror", executable="behavior_mirror_sm", name="behavior_mirror"),
         Node(
             package="flexbe_widget", executable="be_action_server", output="screen",

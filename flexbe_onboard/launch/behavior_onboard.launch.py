@@ -23,8 +23,7 @@ def generate_launch_description():
             default_value="False",
             description="Delete behavior-specific module imports after execution."),
         Node(
-            package="flexbe_onboard", executable="start_behavior", output="screen",
-            name="behavior",
+            name="behavior", package="flexbe_onboard", executable="start_behavior", output="screen",
             parameters=[{"~log_enabled": LaunchConfiguration("log_enabled"),
                          "~log_folder": LaunchConfiguration("log_folder"),
                          "~log_serialize": LaunchConfiguration("log_serialize"),
