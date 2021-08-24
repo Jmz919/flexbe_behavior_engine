@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 from rclpy.exceptions import ROSInterruptException
 from flexbe_core import EventState
 

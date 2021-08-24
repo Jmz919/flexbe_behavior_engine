@@ -22,6 +22,7 @@ class BehaviorActionServer(object):
 		self._node = node
 		self._behavior_started = False
 		self._preempt_requested = False
+		self._current_goal = None
 		self._abort_goal = False
 
 		self._current_state = None
@@ -80,7 +81,7 @@ class BehaviorActionServer(object):
 					if path.startswith('~') or path.startswith('/'):
 						filepath = os.path.expanduser(path)
 					else:
-						filepath = os.path.join(get_interface_path(path.split('/')[0]), '/'.join(path.split('/')[1:])))
+						filepath = os.path.join(get_interface_path(path.split('/')[0]), '/'.join(path.split('/')[1:]))
 						# filepath = os.path.join(self._rp.get_path(path.split('/')[0]), '/'.join(path.split('/')[1:]))
 					with open(filepath, 'r') as f:
 						content = f.read()

@@ -6,7 +6,7 @@ exit
 fi
 '''
 # flake8: noqa
-import rospy
+import rclpy
 import sys
 import os
 import yaml
@@ -17,16 +17,28 @@ from flexbe_testing.logger import Logger
 from flexbe_testing import Tester
 
 if __name__ == '__main__':
-    rospy.init_node('flexbe_testing')
+    node = rclpy.create_node('flexbe_testing')
+    perform_rostest = None
+    test_package = None
 
-    perform_rostest = rospy.get_param('~perform_rostest', False)
-    test_package = rospy.get_param('~package')
+    try:
+      perform_rostest = node.get_parameter('~perform_rostest')
+    except Exception as e:
+      node.declare_parameter('~perform_rostest', False)
+      perform_rostest = False
+
+    try:
+      test_package = node.get_parameter('~package')
+    except Exception as e:
+      node.declare_parameter('~package', "")
+      perform_rostest = ""
 
     if perform_rostest and test_package == '':
-        rospy.logerr('Need to pass the name of the package under testing'
+        node.get_logger.error('Need to pass the name of the package under testing'
                      'as arg "package" to the flexbe_testing launch file!')
 
-    FlexbeLogger.initialize()
+    FlexbeLogger.initialize(node)
+    Logger.initialize(node)
     Logger.mute_rospy()
 
     filenames = list()
@@ -46,7 +58,7 @@ if __name__ == '__main__':
                 config = getattr(yaml, 'full_load', yaml.load)(f)
             test_cases[test_name] = config
         except IOError as io_error:
-            rospy.logerr(io_error)
+            node.get_logger.error(io_error)
             test_cases[test_name] = io_error  # not a valid config, caught during config verification
 
     print('Ready for testing! (%d tests)' % len(test_cases))
@@ -54,7 +66,7 @@ if __name__ == '__main__':
 
     success_cases = 0
     for test_name, test_config in test_cases.items():
-        if rospy.is_shutdown():
+        if noy rclpy.ok():
             break
         success_cases += tester.run_test(test_name, test_config)
 

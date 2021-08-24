@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+
 import rclpy
 import threading
 import zlib

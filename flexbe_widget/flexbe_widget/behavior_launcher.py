@@ -62,7 +62,7 @@ class BehaviorLauncher(object):
 					if path.startswith('~') or path.startswith('/'):
 						yamlpath = os.path.expanduser(path)
 					else:
-						yamlpath = os.path.join(get_interface_path(path.split('/')[0]), '/'.join(path.split('/')[1:])))
+						yamlpath = os.path.join(get_interface_path(path.split('/')[0]), '/'.join(path.split('/')[1:]))
 						# yamlpath = os.path.join(self._rp.get_path(path.split('/')[0]), '/'.join(path.split('/')[1:]))
 					with open(yamlpath, 'r') as f:
 						content = getattr(yaml, 'full_load', yaml.load)(f)

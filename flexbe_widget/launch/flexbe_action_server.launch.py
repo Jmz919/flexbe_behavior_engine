@@ -20,7 +20,7 @@ def generate_launch_description():
             "log_folder",
             default_value="~/.flexbe_logs"),
         IncludeLaunchDescription(
-            PythonLaunchDescriptionSource(flexbe_onboard_dir + "/launch/behavior_onboard.launch.py"),
+            PythonLaunchDescriptionSource(flexbe_onboard_dir + "/behavior_onboard.launch.py"),
             launch_arguments={
                 'log_enabled': LaunchConfiguration("log_enabled"),
                 'log_folder': LaunchConfiguration("log_folder")

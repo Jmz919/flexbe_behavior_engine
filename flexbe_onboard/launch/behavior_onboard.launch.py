@@ -6,18 +6,10 @@ from launch.substitutions import LaunchConfiguration
 
 def generate_launch_description():
     return LaunchDescription([
-        DeclareLaunchArgument(
-            "log_enabled",
-            default_value="False"),
-        DeclareLaunchArgument(
-            "log_folder",
-            default_value="~/.flexbe_logs"),
-        DeclareLaunchArgument(
-            "log_serialize",
-            default_value="yaml"),
-        DeclareLaunchArgument(
-            "log_level",
-            default_value="INFO"),
+        DeclareLaunchArgument("log_enabled", default_value="False"),
+        DeclareLaunchArgument("log_folder", default_value="~/.flexbe_logs"),
+        DeclareLaunchArgument("log_serialize", default_value="yaml"),
+        DeclareLaunchArgument("log_level", default_value="INFO"),
         DeclareLaunchArgument(
             "enable_clear_imports",
             default_value="False",

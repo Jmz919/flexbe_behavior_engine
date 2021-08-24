@@ -213,7 +213,7 @@ class ComplexActionServer(object):
           loop_duration = rclpy.Duration.from_sec(0.1)
 
           # while (not rospy.is_shutdown()):
-          while (rclpy.ok())):
+          while (rclpy.ok()):
               Logger.logdebug("SAS: execute")
 
               with self.terminate_mutex:

@@ -6,13 +6,13 @@ exit
 fi
 '''
 # flake8: noqa
-import rospy
+import rclpy
 
 from flexbe_input.flexbe_input import BehaviorInput
 
 if __name__ == '__main__':
-    rospy.init_node('flexbe_input')
-    be_input = BehaviorInput()
+    node = rclpy.create_node('flexbe_input')
+    be_input = BehaviorInput(node)
 
     # Wait for ctrl-c to stop the application
-    rospy.spin()
+    rclpy.spin()
