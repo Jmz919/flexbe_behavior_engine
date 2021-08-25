@@ -17,5 +17,12 @@ setup(
     maintainer_email='philsplus@gmail.com',
     description='TODO: Package description',
     license='TODO: License declaration',
-    tests_require=['pytest']
+    tests_require=['pytest'],
+    entry_points={
+        'console_scripts': [
+            'flexbe_mirror = flexbe_mirror.flexbe_mirror',
+            'mirror_state = flexbe_mirror.mirror_state',
+            'behavior_mirror_sm = flexbe_mirror.behavior_mirror_sm:main'
+        ],
+    },
 )

@@ -10,9 +10,12 @@ import rclpy
 
 from flexbe_input.flexbe_input import BehaviorInput
 
-if __name__ == '__main__':
-    node = rclpy.create_node('flexbe_input')
-    be_input = BehaviorInput(node)
+def main():
+  node = rclpy.create_node('flexbe_input')
+  be_input = BehaviorInput(node)
 
-    # Wait for ctrl-c to stop the application
-    rclpy.spin()
+  # Wait for ctrl-c to stop the application
+  rclpy.spin()
+
+if __name__ == '__main__':
+    main()

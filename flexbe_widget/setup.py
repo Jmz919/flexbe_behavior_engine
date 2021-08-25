@@ -21,9 +21,16 @@ setup(
     description='TODO: Package description',
     license='TODO: License declaration',
     tests_require=['pytest'],
-    # entry_points={
-    #     'console_scripts': [
-    #         'my_node = my_package.my_node:main',
-    #     ],
-    # },
+    entry_points={
+        'console_scripts': [
+            'behavior_launcher = flexbe_widget.behavior_launcher',
+            'behavior_action_server = flexbe_widget.behavior_action_server',
+            'be_action_server = flexbe_widget.be_action_server:main',
+            'be_compress = flexbe_widget.be_compress:main',
+            'be_launcher = flexbe_widget.be_launcher:main',
+            'breakpoint = flexbe_widget.breakpoint:main',
+            'create_repo = flexbe_widget.create_repo',
+            'evaluate_logs = flexbe_widget.evaluate_logs:main',
+        ],
+    },
 )

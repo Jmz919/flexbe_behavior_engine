@@ -1,11 +1,3 @@
-#!/bin/bash
-if "true" : '''\'
-then
-python${ROS_PYTHON_VERSION:-} "${BASH_SOURCE[0]}" $*
-exit
-fi
-'''
-# flake8: noqa
 import rclpy
 
 from flexbe_core.proxy import ProxySubscriberCached

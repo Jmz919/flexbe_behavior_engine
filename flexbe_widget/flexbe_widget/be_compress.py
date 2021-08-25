@@ -1,11 +1,3 @@
-#!/bin/bash
-if "true" : '''\'
-then
-python${ROS_PYTHON_VERSION:-} "${BASH_SOURCE[0]}" $*
-exit
-fi
-'''
-# flake8: noqa
 import rclpy
 from flexbe_msgs.msg import BehaviorSelection
 from rosidl_runtime_py import get_interface_path
