@@ -17,8 +17,8 @@ class FlexbeMirror(object):
     def __init__(self, node):
         self._sm = None
         self._node = node
-        ProxyPublisher._initialize_ros(self._node)
-        ProxySubscriberCached._initialize_ros(self._node)
+        ProxyPublisher._initialize(self._node)
+        ProxySubscriberCached._initialize(self._node)
         Logger.initialize(self._node)
 
         MirrorState.initialize_ros(self._node)

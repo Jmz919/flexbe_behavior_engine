@@ -10,19 +10,20 @@ from flexbe_msgs.msg import BehaviorRequest
 def usage():
     print("Soon...")
 
-def main():
-  node = rclpy.create_node('flexbe_widget')
+def main(args=None):
+    rclpy.init(args=args)
+    node = rclpy.create_node('flexbe_widget')
 
-  try:
+    try:
       opts, args = getopt.getopt(sys.argv[1:], "hb:a:", ["help", "behavior=", "autonomy="])
-  except getopt.GetoptError:
+    except getopt.GetoptError:
       usage()
       sys.exit(2)
 
-  behavior = ""
-  autonomy = 255
+    behavior = ""
+    autonomy = 255
 
-  for opt, arg in opts:
+    for opt, arg in opts:
       if opt in ("-h", "--help"):
           usage()
           sys.exit()
@@ -30,11 +31,11 @@ def main():
           behavior = arg
       elif opt in ("-a", "--autonomy"):
           autonomy = int(arg)
-  ignore_args = ['__name', '__log']  # auto-set by roslaunch
+    ignore_args = ['__name', '__log']  # auto-set by roslaunch
 
-  launcher = BehaviorLauncher(node)
+    launcher = BehaviorLauncher(node)
 
-  if behavior != "":
+    if behavior != "":
       request = BehaviorRequest()
       request.behavior_name = behavior
       request.autonomy_level = autonomy
@@ -49,8 +50,10 @@ def main():
       time.sleep(0.2)  # wait for publishers...
       launcher._callback(request)
 
-  # Wait for ctrl-c to stop the application
-  rclpy.spin()
+    print("About to spin be_launcher")
+    # Wait for ctrl-c to stop the application
+    rclpy.spin(node)
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
