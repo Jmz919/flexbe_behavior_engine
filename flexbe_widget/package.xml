@@ -15,6 +15,7 @@
     <url type="website">http://ros.org/wiki/flexbe_core</url>
     <url type="bugtracker">https://github.com/team-vigir/flexbe_behavior_engine/issues</url>
 
+    <exec_depend>rclcpp</exec_depend>
     <exec_depend>rclpy</exec_depend>
     <exec_depend>flexbe_core</exec_depend>
     <exec_depend>flexbe_msgs</exec_depend>
@@ -27,7 +28,11 @@
     <test_depend>ament_pep257</test_depend>
     <test_depend>python3-pytest</test_depend>
 
+    <buildtool_depend>ament_cmake</buildtool_depend>
+    <buildtool_depend>ament_cmake_python</buildtool_depend>
+
     <export>
-        <build_type>ament_python</build_type>
+        <build_type>ament_cmake</build_type>
+        <!-- <build_type>ament_python</build_type> -->
     </export>
 </package>

@@ -1,3 +1,11 @@
+#!/bin/bash
+if "true" : '''\'
+then
+python${ROS_PYTHON_VERSION:-} "${BASH_SOURCE[0]}" $*
+exit
+fi
+'''
+# flake8: noqa
 import rclpy
 from flexbe_msgs.msg import BehaviorSelection
 from rosidl_runtime_py import get_interface_path
@@ -58,8 +66,8 @@ def _callback(msg):
         print(change_string)
 
 
-def main():
-  rclpy.init()
+def main(args=None):
+  rclpy.init(args=args)
   node = rclpy.create_node('flexbe_widget')
   sub = node.create_subscription(BehaviorSelection, "/flexbe/start_behavior", _callback)
 
