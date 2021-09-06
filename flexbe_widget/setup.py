@@ -25,12 +25,6 @@ setup(
         'console_scripts': [
             'behavior_launcher = flexbe_widget.behavior_launcher',
             'behavior_action_server = flexbe_widget.behavior_action_server',
-            'be_action_server = flexbe_widget.be_action_server:main',
-            'be_compress = flexbe_widget.be_compress:main',
-            'be_launcher = flexbe_widget.be_launcher:main',
-            'breakpoint = flexbe_widget.breakpoint:main',
-            'create_repo = flexbe_widget.create_repo',
-            'evaluate_logs = flexbe_widget.evaluate_logs:main',
         ],
     },
 )

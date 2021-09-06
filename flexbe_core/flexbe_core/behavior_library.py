@@ -1,5 +1,6 @@
 import os
-from ros2pkg import api as rospkg
+from ament_index_python import get_packages_with_prefixes
+from ros2pkg import api as ros2pkg
 from catkin_pkg.package import parse_package
 import xml.etree.ElementTree as ET
 import zlib
@@ -12,20 +13,23 @@ class BehaviorLibrary(object):
     Provides access to all known behaviors.
     '''
 
-    def __init__(self):
-        self._behavior_lib = dict()
+    def __init__(self, node):
+        # self._behavior_lib = dict()
+        self._node = node
+        Logger.initialize(node)
         self.parse_packages()
 
     def parse_packages(self):
         """
-        Parses all ROS packages to update the internal behavior library.
+        Parses all ROS2 packages to update the internal behavior library.
         """
         self._behavior_lib = dict()
-        for pkg_name, pkg_path in rospkg.get_packages_with_prefixes().items():
+        # for pkg_name, pkg_path in ros2pkg.get_packages_with_prefixes().items():
+        for pkg_name, pkg_path in get_packages_with_prefixes().items():
             pkg = parse_package(os.path.join(pkg_path, 'share', pkg_name))
             for export in pkg.exports:
                 if export.tagname == "flexbe_behaviors":
-                    self._add_behavior_manifests(os.path.join(pkg_path, 'share', 'manifest'), pkg_name)
+                    self._add_behavior_manifests(os.path.join(pkg_path, 'lib', pkg_name, 'manifest'), pkg_name)
 
     def _add_behavior_manifests(self, path, pkg=None):
         """

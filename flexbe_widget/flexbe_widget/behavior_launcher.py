@@ -33,7 +33,7 @@ class BehaviorLauncher(object):
 		self._mirror_pub = self._node.create_publisher(ContainerStructure, "flexbe/mirror/structure", 100)
 
 		# self._rp = RosPack()
-		self._behavior_lib = BehaviorLibrary()
+		self._behavior_lib = BehaviorLibrary(node)
 
 		self._node.get_logger().info("%d behaviors available, ready for start request." % self._behavior_lib.count_behaviors())
 
