@@ -26,6 +26,10 @@ class ConcurrencyContainer(OperatableStateMachine):
 
     @property
     def sleep_duration(self):
+        sleep_dur = None
+        for state in self._states:
+            if state.sleep_duration > 0:
+                sleep_dur = state.sleep_duration if sleep_dur is None else min(sleep_dur, state.sleep_duration)
         return self._sleep_dur or 0.
 
     def _execute_current_state(self):
