@@ -19,26 +19,26 @@ def usage():
     print("Soon...")
 
 def main(args=None):
-    # try:
-    #   print(sys.argv)
-    #   opts, args = getopt.getopt(sys.argv[1:], "hb:a:", ["help", "behavior=", "autonomy="])
-    # except getopt.GetoptError as e:
-    #   usage()
-    #   print(e)
-    #   sys.exit(2)
+    try:
+      print(sys.argv)
+      opts, args = getopt.getopt(sys.argv[1:], "hb:a:", ["help", "behavior=", "autonomy="])
+    except getopt.GetoptError as e:
+      usage()
+      print(e)
+      sys.exit(2)
 
     behavior = ""
     autonomy = 255
 
-    # for opt, arg in opts:
-    #   if opt in ("-h", "--help"):
-    #       usage()
-    #       sys.exit()
-    #   elif opt in ("-b", "--behavior"):
-    #       behavior = arg
-    #   elif opt in ("-a", "--autonomy"):
-    #       autonomy = int(arg)
-    # ignore_args = ['__name', '__log']  # auto-set by roslaunch
+    for opt, arg in opts:
+      if opt in ("-h", "--help"):
+          usage()
+          sys.exit()
+      elif opt in ("-b", "--behavior"):
+          behavior = arg
+      elif opt in ("-a", "--autonomy"):
+          autonomy = int(arg)
+    ignore_args = ['__name', '__log']  # auto-set by roslaunch
 
     rclpy.init(args=args)
     node = rclpy.create_node('flexbe_widget')
