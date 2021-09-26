@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 import genmsg
+import importlib
 from rclpy.duration import Duration
 from rclpy.time import Time
 
-STANDARD_MSG_TYPES = ['bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'float32', 'float64', 'string', 'char','byte']
+STANDARD_MSG_TYPES = ['bool', 'int8', 'uint8', 'int16', 'uint16', 'int32',
+                      'uint32', 'int64', 'uint64', 'float32', 'float64',
+                      'string', 'char','byte', 'octet']
 _message_class_cache = {}
 
 def fill_message_args(msg, msg_args, keys={}):
@@ -94,6 +97,11 @@ def _fill_val(msg, field, val, keys, prefix):
         # - for primitives, we just directly set (we don't
         #   type-check. we rely on serialization type checker)
         if base_type in STANDARD_MSG_TYPES:
+            byte_list = []
+            if base_type == 'octet':
+                for i in val:
+                    byte_list.append(str(i).encode())
+                val = set(byte_list)
             # 3785
             if length is not None and len(val) != length:
                 raise ValueError('Field [%s%s] has incorrect number of elements: %s != %s' % (prefix, field, len(val), length))
@@ -104,8 +112,6 @@ def _fill_val(msg, field, val, keys, prefix):
             # 3785
             if length is not None and len(val) != length:
                 raise ValueError('Field [%s%s] has incorrect number of elements: %s != %s' % (prefix, field, len(val), length))
-
-            # 'sequence<geometry_msgs/MsgType>'
 
             list_msg_class = get_message_class(base_type)
             if list_msg_class is None:
@@ -147,8 +153,9 @@ def parse_type(msg_type):
     """
     if not msg_type:
         raise ValueError("Invalid empty type")
-    if 'sequence' in msg_type:
+    if "sequence" in msg_type:
         if '<' in msg_type and '>' in msg_type:
+            # raise ValueError("Sequence type " + msg_type[msg_type.index('<') + 1:msg_type.index('>')])
             return msg_type[msg_type.index('<') + 1:msg_type.index('>')], True, None
 
         var_length = msg_type.endswith('[]')
@@ -202,6 +209,7 @@ def _get_message_class(type_str, message_type, reload_on_error=False):
         return Duration
     # parse package and local type name for import
     package, base_type = genmsg.package_resource_name(message_type)
+
     if not package:
         if base_type == 'Header':
             package = 'std_msgs'
@@ -211,7 +219,6 @@ def _get_message_class(type_str, message_type, reload_on_error=False):
     try:
         # import the package
         pypkg = __import__('%s.%s' % (package, type_str))
-        # pypkg = importlib.import_module('%s.msg' % msg_pkg)
     except ImportError:
         pass
     if pypkg:
