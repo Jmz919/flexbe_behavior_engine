@@ -51,7 +51,6 @@ class FlexbeOnboard(object):
         self._execute_heartbeat()
 
         # listen for new behavior to start
-        # self._enable_clear_imports = rospy.get_param('~enable_clear_imports', False)
         try:
             self._enable_clear_imports = self._node.get_parameter('~enable_clear_imports').get_parameter_value()
         except ParameterNotDeclaredException as e:
@@ -118,7 +117,7 @@ class FlexbeOnboard(object):
                     rate.sleep()
                 # extract the active state if any
                 if active_state is not None:
-                    self._node.get_logger().info("Current state %s is kept active.", active_state.name)
+                    self._node.get_logger().info("Current state %s is kept active." % active_state.name)
                     try:
                         be.prepare_for_switch(active_state)
                         self._pub.publish(self.feedback_topic, CommandFeedback(command="switch", args=['prepared']))

@@ -18,9 +18,10 @@ class RosState(State):
     def initialize_ros(node):
         RosState._node = node
         try:
-            RosState._breakpoints = node.get_parameter('breakpoints').get_parameter_value()
+            RosState._breakpoints = node.get_parameter('breakpoints')
         except ParameterNotDeclaredException as e:
-            RosState._breakpoints = node.declare_parameter('breakpoints', [])
+            node.declare_parameter('breakpoints', [])
+            RosState._breakpoints = node.get_parameter('breakpoints')
         # RosState._breakpoints = node.declare_parameter('breakpoints', [])
         ProxyPublisher._initialize(RosState._node)
         ProxySubscriberCached._initialize(RosState._node)
