@@ -11,6 +11,7 @@ from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
 from flexbe_msgs.msg import ContainerStructure, BehaviorSync, BEStatus
 from std_msgs.msg import Empty, String, Int32, UInt8
 
+import traceback
 
 class FlexbeMirror(object):
 
@@ -199,7 +200,8 @@ class FlexbeMirror(object):
         try:
             result = self._sm.spin()
         except Exception as e:
-            Logger.loginfo('Caught exception on preempt:\n%s' % str(e))
+            Logger.logerr('(Traceback): Caught exception on preempt:\n%s' % str(e))
+            Logger.logerr(traceback.format_exc())
             result = 'preempted'
 
         self._running = False

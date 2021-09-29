@@ -33,4 +33,4 @@ class MirrorState(EventState):
             print('Interrupted mirror sleep.')
 
     def on_enter(self, userdata):
-        self._pub.publish('flexbe/behavior_update', String("/" + "/".join(self._target_path.split("/")[1:])))
+        self._pub.publish('flexbe/behavior_update', String(data="/" + "/".join(self._target_path.split("/")[1:])))
