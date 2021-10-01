@@ -42,13 +42,14 @@ class BehaviorLauncher(object):
 			self._ready_event.set()
 
 	def _callback(self, msg):
+		self._node.get_logger().info("Got message from request behavior")
 		be_id, behavior = self._behavior_lib.find_behavior(msg.behavior_name)
 		if be_id is None:
 			self._node.get_logger().error("Did not find behavior with requested name: %s" % msg.behavior_name)
 			self._status_pub.publish(BEStatus(code=BEStatus.ERROR))
 			return
 
-		self._node.get_logger().info("Request for behavior " + behavior["name"])
+		self._node.get_logger().info("Request for behavior " + str(behavior["name"]))
 
 		be_selection = BehaviorSelection()
 		be_selection.behavior_id = be_id

@@ -17,7 +17,6 @@ class WaitState(EventState):
         self._wait = wait_time
 
     def execute(self, userdata):
-
         elapsed = WaitState._node.get_clock().now() - self._start_time
         if elapsed.nanoseconds * 10 ** -9 > self._wait:
             return 'done'

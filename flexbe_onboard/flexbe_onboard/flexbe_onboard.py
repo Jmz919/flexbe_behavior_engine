@@ -43,11 +43,8 @@ class FlexbeOnboard(object):
         # prepare communication
         self.status_topic = 'flexbe/status'
         self.feedback_topic = 'flexbe/command_feedback'
-        self._pub = ProxyPublisher({
-            self.feedback_topic: CommandFeedback,
-            'flexbe/heartbeat': Empty
-        })
-        self._pub.createPublisher(self.status_topic, BEStatus, _latch=True)
+        self._pub = ProxyPublisher({self.feedback_topic: CommandFeedback, 'flexbe/heartbeat': Empty})
+        self._pub.createPublisher(self.status_topic, BEStatus)
         self._execute_heartbeat()
 
         # listen for new behavior to start
