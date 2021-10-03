@@ -86,10 +86,10 @@ class StateMachine(State):
             self._current_state.sleep()
 
     def _execute_current_state(self):
-        userdata = UserData(reference=self._userdata, remap=self._remappings[self._current_state.name],
-                      input_keys=self._current_state.input_keys, output_keys=self._current_state.output_keys)
-
-        outcome = self._current_state.execute(userdata)
+        with UserData(reference=self._userdata, remap=self._remappings[self._current_state.name],
+                      input_keys=self._current_state.input_keys, output_keys=self._current_state.output_keys
+                      ) as userdata:
+                      outcome = self._current_state.execute(userdata)
 
         if outcome is not None:
             try:
