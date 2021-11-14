@@ -41,7 +41,8 @@ class RosState(State):
 
     @property
     def sleep_duration(self):
-        return self._rate._timer.timer_period_ns
+        # return self._rate._timer.timer_period_ns * 1e-9
+        return self._rate._timer.time_until_next_call() * 1e-9
 
     def set_rate(self, rate):
         """

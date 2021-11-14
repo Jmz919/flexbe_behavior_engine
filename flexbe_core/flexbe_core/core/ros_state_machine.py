@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import rclpy
 from flexbe_core.proxy import ProxyPublisher, ProxySubscriberCached
+from flexbe_core.logger import Logger
+import threading
+
 
 from flexbe_core.core.state_machine import StateMachine
 
@@ -25,14 +28,17 @@ class RosStateMachine(StateMachine):
         self._sub = ProxySubscriberCached()
 
     def wait(self, seconds=None, condition=None):
+        Logger.loginfo("Waiting")
         if seconds is not None:
-            RosStateMachine._node.create_rate(1 / seconds).sleep()
+            RosStateMachine._node.create_rate(1 / seconds, RosStateMachine._node.get_clock()).sleep()
         if condition is not None:
-            rate = RosStateMachine._node.create_rate(100)
+            rate = RosStateMachine._node.create_rate(100, RosStateMachine._node.get_clock())
             while rclpy.ok():
                 if condition():
                     break
                 rate.sleep()
+
+        Logger.loginfo("Done waiting")
 
     def _enable_ros_control(self):
         self._is_controlled = True
