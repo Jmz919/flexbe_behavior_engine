@@ -30,7 +30,7 @@ class RosState(State):
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
-        self._rate = RosState._node.create_rate(10)
+        self._rate = RosState._node.create_rate(50)
         self._is_controlled = False
 
         self._pub = ProxyPublisher()
@@ -41,7 +41,6 @@ class RosState(State):
 
     @property
     def sleep_duration(self):
-        # return self._rate._timer.timer_period_ns * 1e-9
         return self._rate._timer.time_until_next_call() * 1e-9
 
     def set_rate(self, rate):

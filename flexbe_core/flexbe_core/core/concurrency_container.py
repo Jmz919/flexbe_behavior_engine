@@ -25,60 +25,49 @@ class ConcurrencyContainer(OperatableStateMachine):
     def sleep_duration(self):
         sleep_dur = None
         for state in self._states:
-            Logger.loginfo("State = " + str(state) + " sleep duration = " + str(state.sleep_duration))
-
             if state.sleep_duration > 0:
                 sleep_dur = state.sleep_duration if sleep_dur is None else min(sleep_dur, state.sleep_duration)
 
         sleep_dur = sleep_dur
-        return sleep_dur or 0.
+        return sleep_dur
 
     def _execute_current_state(self):
-        Logger.loginfo("Executing current states")
         # execute all states that are done with sleeping and determine next sleep duration
         for state in self._states:
-            Logger.loginfo("Exploring states")
 
             if state.name in list(self._returned_outcomes.keys()) and self._returned_outcomes[state.name] is not None:
-                Logger.loginfo("Checking if already executed state")
                 continue  # already done with executing
 
             if (PriorityContainer.active_container is not None
                 and not all(a == s for a, s in zip(PriorityContainer.active_container.split('/'),
                                                    state.path.split('/')))):
-                Logger.loginfo("Checking to skip state")
                 if isinstance(state, EventState):
                     state._notify_skipped()
                 elif state.get_deep_state() is not None:
                     state.get_deep_state()._notify_skipped()
                 continue  # other state has priority
 
-            if state.sleep_duration <= 0.1:  # ready to execute
-                Logger.loginfo("Checking if state is ready to execute")
+            if state.sleep_duration <= 0:  # ready to execute
                 self._returned_outcomes[state.name] = self._execute_single_state(state)
                 # check again in case the sleep has already been handled by the child
-                if state.sleep_duration <= 0.1:
+                if state.sleep_duration <= 0:
                     # this sleep returns immediately since sleep duration is negative,
                     # but is required here to reset the sleep time after executing
                     state.sleep()
 
         # Determine outcome
         outcome = None
-        Logger.loginfo("Done exploring states")
         if any(self._returned_outcomes[state.name] == state._preempted_name
                for state in self._states if state.name in self._returned_outcomes):
-            Logger.loginfo("Returned preempted name")
             return self._preempted_name  # handle preemption if required
         # check conditions
         for item in self._conditions:
-            Logger.loginfo("Checking conditions")
             (oc, cond) = item
             if all(sn in self._returned_outcomes and self._returned_outcomes[sn] == o for sn, o in cond):
                 outcome = oc
                 break
 
         if outcome is None:
-            Logger.loginfo("Returning none")
             return None
 
         # trigger on_exit for those states that are not done yet
@@ -90,11 +79,9 @@ class ConcurrencyContainer(OperatableStateMachine):
         # thus, as a quick fix, explicitly sync again
         self._parent._inner_sync_request = True
         self._current_state = None
-        Logger.loginfo("Returning outcome")
         return outcome
 
     def _execute_single_state(self, state, force_exit=False):
-        Logger.loginfo("Executing single states")
         result = None
         try:
             with UserData(reference=self._userdata, remap=self._remappings[state.name],

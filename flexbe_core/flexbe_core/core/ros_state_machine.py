@@ -28,7 +28,6 @@ class RosStateMachine(StateMachine):
         self._sub = ProxySubscriberCached()
 
     def wait(self, seconds=None, condition=None):
-        Logger.loginfo("Waiting")
         if seconds is not None:
             RosStateMachine._node.create_rate(1 / seconds, RosStateMachine._node.get_clock()).sleep()
         if condition is not None:
@@ -37,8 +36,6 @@ class RosStateMachine(StateMachine):
                 if condition():
                     break
                 rate.sleep()
-
-        Logger.loginfo("Done waiting")
 
     def _enable_ros_control(self):
         self._is_controlled = True
