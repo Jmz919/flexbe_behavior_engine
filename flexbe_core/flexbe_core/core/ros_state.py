@@ -30,7 +30,7 @@ class RosState(State):
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
-        self._rate = RosState._node.create_rate(50)
+        self._rate = RosState._node.create_rate(10)
         self._is_controlled = False
 
         self._pub = ProxyPublisher()

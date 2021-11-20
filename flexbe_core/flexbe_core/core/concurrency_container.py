@@ -28,7 +28,6 @@ class ConcurrencyContainer(OperatableStateMachine):
             if state.sleep_duration > 0:
                 sleep_dur = state.sleep_duration if sleep_dur is None else min(sleep_dur, state.sleep_duration)
 
-        sleep_dur = sleep_dur
         return sleep_dur or 0.
 
     def _execute_current_state(self):
@@ -47,13 +46,16 @@ class ConcurrencyContainer(OperatableStateMachine):
                     state.get_deep_state()._notify_skipped()
                 continue  # other state has priority
 
-            if state.sleep_duration <= 0:  # ready to execute
+            state_sleep_duration = state.sleep_duration
+            if state_sleep_duration <= 0:  # ready to execute
                 self._returned_outcomes[state.name] = self._execute_single_state(state)
                 # check again in case the sleep has already been handled by the child
-                if state.sleep_duration <= 0:
+                if state_sleep_duration <= 0:
                     # this sleep returns immediately since sleep duration is negative,
                     # but is required here to reset the sleep time after executing
                     state.sleep()
+            else:
+                Logger.loginfo('sleeping for current state %s : %s' % (state.name, str(state_sleep_duration)))
 
         # Determine outcome
         outcome = None

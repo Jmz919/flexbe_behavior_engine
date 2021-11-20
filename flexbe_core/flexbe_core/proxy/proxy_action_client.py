@@ -36,6 +36,8 @@ class ProxyActionClient(object):
             given set to become available (if it is not already available).
         """
         for topic, msg_type in topics.items():
+            Logger.loginfo(f"Proxy client init {topic} msg type = {str(type(msg_type))} id={str(id(msg_type))} type id={str(id(type(msg_type)))} {msg_type}")
+
             self.setupClient(topic, msg_type, wait_duration)
 
     def setupClient(self, topic, msg_type, wait_duration=10):
@@ -52,8 +54,17 @@ class ProxyActionClient(object):
         @param wait_duration: Defines how long to wait for the given client if it is not available right now.
         """
         if topic not in ProxyActionClient._clients:
+            Logger.loginfo(f"Proxy client setup {topic} msg type = {str(type(msg_type))} id={str(id(msg_type))} type id={str(id(type(msg_type)))} {msg_type}")
             ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
+            Logger.loginfo("Proxy client setup msg type = " + str(type(msg_type)) + "("+topic+")")
             self._check_topic_available(topic, wait_duration)
+        else:
+            if not isinstance(msg_type, ProxyActionClient._clients[topic]._action_type):
+                if msg_type.__name__ == ProxyActionClient._clients[topic]._action_type.__name__:
+                    ProxyActionClient._clients[topic] = ActionClient(ProxyActionClient._node, msg_type, topic)
+                else:
+                    raise TypeError("Trying to replace existing action client with different msg type")
+
 
     def send_goal(self, topic, goal):
         """
@@ -79,6 +90,7 @@ class ProxyActionClient(object):
             goal,
             feedback_callback=lambda f: self._feedback_callback(topic, f)
         )
+
         future.add_done_callback(partial(self._done_callback, topic=topic))
 
     def _done_callback(self, future, topic):
