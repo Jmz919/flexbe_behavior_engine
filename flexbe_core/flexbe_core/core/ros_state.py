@@ -36,6 +36,8 @@ class RosState(State):
         self._pub = ProxyPublisher()
         self._sub = ProxySubscriberCached()
 
+        self._start_time = None
+
     def sleep(self):
         self._rate.sleep()
 
@@ -54,7 +56,7 @@ class RosState(State):
         else:
             # Sleep duration is now the timer's period minus elapsed time
             return (self._rate._timer.timer_period_ns - elapsed.nanoseconds) * 1e-9
-            
+
         # return self._rate._timer.time_until_next_call() * 1e-9
 
     def set_rate(self, rate):
