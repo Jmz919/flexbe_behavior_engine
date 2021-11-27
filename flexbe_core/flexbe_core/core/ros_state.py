@@ -30,34 +30,32 @@ class RosState(State):
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
-        self._rate = RosState._node.create_rate(50)
+        self._rate = RosState._node.create_rate(0.5)
         self._is_controlled = False
 
         self._pub = ProxyPublisher()
         self._sub = ProxySubscriberCached()
 
-        self._start_time = None
+        # self._start_time = None
+        self._start_time = RosState._node.get_clock().now()
 
     def sleep(self):
         self._rate.sleep()
 
     @property
     def sleep_duration(self):
-        # Check for none to get the start time
+        # Check for none to get the new start time
         if self._start_time is None:
             self._start_time = RosState._node.get_clock().now()
 
         elapsed = RosState._node.get_clock().now() - self._start_time
 
         if elapsed.nanoseconds > self._rate._timer.timer_period_ns:
-            # Set back to none for next time
+            # reset for next time
             self._start_time = None
-            return 0.0
-        else:
-            # Sleep duration is now the timer's period minus elapsed time
-            return (self._rate._timer.timer_period_ns - elapsed.nanoseconds) * 1e-9
 
-        # return self._rate._timer.time_until_next_call() * 1e-9
+        # Take how long the timer should sleep for and subtract elapsed time
+        return (self._rate._timer.timer_period_ns - elapsed.nanoseconds) * 1e-9
 
     def set_rate(self, rate):
         """
