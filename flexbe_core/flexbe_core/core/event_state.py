@@ -65,6 +65,7 @@ class EventState(OperatableState):
             self._skipped = False
             self.on_resume(*args, **kwargs)
 
+        self._last_execution = EventState._node.get_clock().now()
         outcome = self.__execute(*args, **kwargs)
 
         repeat = False

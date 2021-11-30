@@ -22,7 +22,6 @@ class RosState(State):
         except ParameterNotDeclaredException as e:
             node.declare_parameter('breakpoints', [])
             RosState._breakpoints = node.get_parameter('breakpoints')
-        # RosState._breakpoints = node.declare_parameter('breakpoints', [])
         ProxyPublisher._initialize(RosState._node)
         ProxySubscriberCached._initialize(RosState._node)
         StateLogger.initialize_ros(RosState._node)
@@ -30,29 +29,25 @@ class RosState(State):
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
-        self._rate = RosState._node.create_rate(10)
+        self._rate = RosState._node.create_rate(0.5)
         self._is_controlled = False
 
         self._pub = ProxyPublisher()
         self._sub = ProxySubscriberCached()
 
         # self._start_time = None
-        self._start_time = RosState._node.get_clock().now()
+        self._last_execution = RosState._node.get_clock().now()
 
     def sleep(self):
         self._rate.sleep()
 
     @property
     def sleep_duration(self):
-        # Check for none to get the new start time
-        if self._start_time is None:
-            self._start_time = RosState._node.get_clock().now()
+        # Check for none to get the new execute time
+        if self._last_execution is None:
+            self._last_execution = RosState._node.get_clock().now()
 
-        elapsed = RosState._node.get_clock().now() - self._start_time
-
-        if elapsed.nanoseconds > self._rate._timer.timer_period_ns:
-            # reset for next time
-            self._start_time = None
+        elapsed = RosState._node.get_clock().now() - self._last_execution
 
         # Take how long the timer should sleep for and subtract elapsed time
         return (self._rate._timer.timer_period_ns - elapsed.nanoseconds) * 1e-9
