@@ -29,17 +29,18 @@ class RosState(State):
 
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
-        self._rate = RosState._node.create_rate(0.5)
+
+        self._desired_rate = (1 / 10) * 1e9
+
+        if "rate" in kwargs:
+            self._desired_rate = (1 / kwargs["rate"]) * 1e9
+
         self._is_controlled = False
 
         self._pub = ProxyPublisher()
         self._sub = ProxySubscriberCached()
 
-        # self._start_time = None
-        self._last_execution = RosState._node.get_clock().now()
-
-    def sleep(self):
-        self._rate.sleep()
+        self._last_execution = None
 
     @property
     def sleep_duration(self):
@@ -50,7 +51,7 @@ class RosState(State):
         elapsed = RosState._node.get_clock().now() - self._last_execution
 
         # Take how long the timer should sleep for and subtract elapsed time
-        return (self._rate._timer.timer_period_ns - elapsed.nanoseconds) * 1e-9
+        return (self._desired_rate - elapsed.nanoseconds) * 1e-9
 
     def set_rate(self, rate):
         """
@@ -62,8 +63,7 @@ class RosState(State):
         @type label: float
         @param label: The desired rate in Hz.
         """
-        self._rate.destroy()
-        self._rate = RosState._node.create_rate(rate)
+        self._desired_rate = (1 / rate) * 1e9
 
     def _enable_ros_control(self):
         self._is_controlled = True
