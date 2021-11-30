@@ -24,8 +24,8 @@ class State(object):
     def execute(self, userdata):
         pass
 
-    def sleep(self):
-        pass
+    #def sleep(self):
+    #    pass
 
     @property
     def sleep_duration(self):

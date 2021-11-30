@@ -44,11 +44,11 @@ class RosState(State):
 
     @property
     def sleep_duration(self):
-        # Check for none to get the new execute time
+        """
+        Sleep duration in seconds
+        """
         if self._last_execution is None:
-            self._last_execution = RosState._node.get_clock().now()
-            # Validation check not expected to log
-            Logger.logwarn("Setting an undefined last execution time")
+            return -1  # No sleep if not executed since last entry
 
         elapsed = RosState._node.get_clock().now() - self._last_execution
 
@@ -62,8 +62,8 @@ class RosState(State):
 
         Note: The rate is best-effort, real-time support is not yet available.
 
-        @type label: float
-        @param label: The desired rate in Hz.
+        @type desired_rate: float
+        @param desired_rate: The desired rate in Hz.
         """
         self._desired_period_ns = (1 / desired_rate) * 1e9
 
