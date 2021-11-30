@@ -30,10 +30,10 @@ class RosState(State):
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
 
-        self._desired_rate = (1 / 10) * 1e9
+        self._desired_period_ns = (1 / 0.2) * 1e9
 
-        if "rate" in kwargs:
-            self._desired_rate = (1 / kwargs["rate"]) * 1e9
+        if "desired_rate" in kwargs:
+            self._desired_period_ns = (1 / kwargs["desired_rate"]) * 1e9
 
         self._is_controlled = False
 
@@ -47,13 +47,15 @@ class RosState(State):
         # Check for none to get the new execute time
         if self._last_execution is None:
             self._last_execution = RosState._node.get_clock().now()
+            # Validation check not expected to log
+            Logger.logwarn("Setting an undefined last execution time")
 
         elapsed = RosState._node.get_clock().now() - self._last_execution
 
         # Take how long the timer should sleep for and subtract elapsed time
-        return (self._desired_rate - elapsed.nanoseconds) * 1e-9
+        return (self._desired_period_ns - elapsed.nanoseconds) * 1e-9
 
-    def set_rate(self, rate):
+    def set_rate(self, desired_rate):
         """
         Set the execution rate of this state,
         i.e., the rate with which the execute method is being called.
@@ -63,7 +65,7 @@ class RosState(State):
         @type label: float
         @param label: The desired rate in Hz.
         """
-        self._desired_rate = (1 / rate) * 1e9
+        self._desired_period_ns = (1 / desired_rate) * 1e9
 
     def _enable_ros_control(self):
         self._is_controlled = True

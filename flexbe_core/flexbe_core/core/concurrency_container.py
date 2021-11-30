@@ -33,7 +33,6 @@ class ConcurrencyContainer(OperatableStateMachine):
     def _execute_current_state(self):
         # execute all states that are done with sleeping and determine next sleep duration
         for state in self._states:
-
             if state.name in list(self._returned_outcomes.keys()) and self._returned_outcomes[state.name] is not None:
                 continue  # already done with executing
 
