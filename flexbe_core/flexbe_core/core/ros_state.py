@@ -30,7 +30,7 @@ class RosState(State):
     def __init__(self, *args, **kwargs):
         super(RosState, self).__init__(*args, **kwargs)
 
-        self._desired_period_ns = (1 / 0.2) * 1e9
+        self._desired_period_ns = (1 / 10) * 1e9
 
         if "desired_rate" in kwargs:
             self._desired_period_ns = (1 / kwargs["desired_rate"]) * 1e9
