@@ -50,7 +50,7 @@ class ConcurrencyContainer(OperatableStateMachine):
             if state.sleep_duration <= 0:  # ready to execute
                 self._returned_outcomes[state.name] = self._execute_single_state(state)
             else:
-                Logger.loginfo('sleeping for current state %s : %s' % (state.name, str(state_sleep_duration)))
+                Logger.loginfo('sleeping for current state %s : %s' % (state.name, str(state.sleep_duration)))
 
         # Determine outcome
         outcome = None
@@ -113,7 +113,7 @@ class ConcurrencyContainer(OperatableStateMachine):
             if not state._entering:
                 Logger.logerr('Reset entering flag for child state: %s' % (state.name))
             state._entering = True  # force state to handle enter on first execute
-            state._last_execution = None 
+            state._last_execution = None
 
     def on_exit(self, userdata, states=None):
         for state in self._states if states is None else states:
